@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Calendar Overrides */
+.rbc-calendar {
+  @apply font-sans;
+}
+
+.rbc-header {
+  @apply py-2 font-semibold text-gray-600 text-xs uppercase tracking-wider border-b border-gray-100;
+}
+
+.rbc-month-view {
+  @apply border border-gray-100 rounded-lg overflow-hidden;
+}
+
+.rbc-day-bg {
+  @apply hover:bg-gray-50 transition-colors;
+}
+
+.rbc-off-range-bg {
+  @apply bg-gray-50/50;
+}
+
+.rbc-today {
+  @apply bg-blue-50/30;
+}
+
+/* Mobile Specific Overrides */
+@media (max-width: 768px) {
+  .rbc-month-row {
+    min-height: 100px !important;
+    /* Force minimum height for rows */
+    overflow: visible !important;
+    /* Allow events to be seen */
+  }
+
+  .rbc-row-content {
+    height: 100% !important;
+    pointer-events: none;
+    /* Allow clicks to pass through to background */
+  }
+
+  /* Re-enable clicks for interactive elements inside row content */
+  .rbc-row-content .rbc-event,
+  .rbc-row-content .rbc-show-more,
+  .rbc-row-content .rbc-date-cell {
+    pointer-events: auto;
+  }
+
+  .rbc-date-cell {
+    padding-right: 4px;
+    font-size: 0.75rem;
+  }
+
+  /* Ensure events container has space */
+  .rbc-row-segment {
+    padding: 0 1px !important;
+  }
+}
+
+/* Event Styling Overrides */
+.rbc-event {
+  @apply p-0 bg-transparent focus:outline-none;
+}
+
+/* Ensure cell height on mobile */
+.rbc-row-content {
+  @apply min-h-[60px] md:min-h-0;
+}
+
+/* Hide "+x more" on very small screens if needed, or style it */
+.rbc-show-more {
+  @apply text-xs font-medium text-gray-500 hover:text-blue-600 hover:underline bg-transparent;
+}

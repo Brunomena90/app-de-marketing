@@ -1,0 +1,320 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Calendar Overrides */
+.rbc-calendar {
+  @apply font-sans;
+}
+
+.rbc-header {
+  @apply py-2 font-semibold text-gray-600 text-xs uppercase tracking-wider border-b border-gray-100;
+}
+
+.rbc-month-view {
+  @apply border border-gray-100 rounded-lg overflow-hidden;
+}
+
+.rbc-day-bg {
+  @apply hover:bg-gray-50 transition-colors;
+}
+
+.rbc-off-range-bg {
+  @apply bg-gray-50/50;
+}
+
+.rbc-today {
+  @apply bg-blue-50/30;
+}
+
+/* Mobile Specific Overrides */
+@media (max-width: 768px) {
+  .rbc-month-row {
+    min-height: 100px !important;
+    /* Force minimum height for rows */
+    overflow: visible !important;
+    /* Allow events to be seen */
+  }
+
+  .rbc-row-content {
+    height: 100% !important;
+    pointer-events: none;
+    /* Allow clicks to pass through to background */
+  }
+
+  /* Re-enable clicks for interactive elements inside row content */
+  .rbc-row-content .rbc-event,
+  .rbc-row-content .rbc-show-more,
+  .rbc-row-content .rbc-date-cell {
+    pointer-events: auto;
+  }
+
+  .rbc-date-cell {
+    padding-right: 4px;
+    font-size: 0.75rem;
+  }
+
+  /* Ensure events container has space */
+  .rbc-row-segment {
+    padding: 0 1px !important;
+  }
+}
+
+/* Event Styling Overrides */
+.rbc-event {
+  @apply p-0 bg-transparent focus:outline-none;
+}
+
+/* Ensure cell height on mobile */
+.rbc-row-content {
+  @apply min-h-[60px] md:min-h-0;
+}
+
+/* Hide "+x more" on very small screens if needed, or style it */
+.rbc-show-more {
+  @apply text-xs font-medium text-gray-500 hover:text-blue-600 hover:underline bg-transparent;
+}
+
+/* ----------------------------------------- */
+/* MARKETING DARK MODE OVERRIDES */
+/* ----------------------------------------- */
+.marketing-dark {
+  background-color: #050505 !important;
+  color: #f1f1f1 !important;
+}
+
+.marketing-dark .bg-white,
+.marketing-dark .bg-white\/80,
+.marketing-dark .bg-white\/90 {
+  background-color: #111111 !important;
+  border-color: #222222 !important;
+}
+
+.marketing-dark .bg-gray-50, 
+.marketing-dark .bg-gray-100,
+.marketing-dark .bg-gray-200,
+.marketing-dark .bg-slate-50,
+.marketing-dark .bg-slate-100,
+.marketing-dark .bg-slate-200,
+.marketing-dark .bg-slate-50\/50,
+.marketing-dark .bg-slate-50\/80,
+.marketing-dark .bg-slate-100\/50,
+.marketing-dark .bg-gray-50\/50,
+.marketing-dark .bg-white\/50 {
+  background-color: #181818 !important;
+  border-color: #2a2a2a !important;
+}
+
+.marketing-dark .text-gray-800, 
+.marketing-dark .text-gray-900, 
+.marketing-dark .text-gray-700,
+.marketing-dark .text-slate-800, 
+.marketing-dark .text-slate-900, 
+.marketing-dark .text-slate-700 {
+  color: #f1f1f1 !important;
+}
+
+.marketing-dark .text-gray-600, 
+.marketing-dark .text-gray-500,
+.marketing-dark .text-slate-600, 
+.marketing-dark .text-slate-500 {
+  color: #a1a1aa !important;
+}
+
+.marketing-dark .text-gray-400,
+.marketing-dark .text-slate-400,
+.marketing-dark .text-slate-300 {
+  color: #71717a !important;
+}
+
+/* Brighten colored text on dark backgrounds */
+.marketing-dark .text-amber-900,
+.marketing-dark .text-amber-800,
+.marketing-dark .text-amber-700 {
+  color: #fbbf24 !important;
+}
+.marketing-dark .text-amber-700\/60 {
+  color: rgba(251, 191, 36, 0.7) !important;
+}
+
+.marketing-dark .text-indigo-900,
+.marketing-dark .text-indigo-800,
+.marketing-dark .text-indigo-700 {
+  color: #818cf8 !important;
+}
+
+.marketing-dark .text-emerald-900,
+.marketing-dark .text-emerald-800,
+.marketing-dark .text-emerald-700 {
+  color: #34d399 !important;
+}
+
+.marketing-dark .text-blue-900,
+.marketing-dark .text-blue-800,
+.marketing-dark .text-blue-700 {
+  color: #60a5fa !important;
+}
+
+.marketing-dark .border-gray-100, 
+.marketing-dark .border-gray-200, 
+.marketing-dark .border-gray-300,
+.marketing-dark .border-slate-100, 
+.marketing-dark .border-slate-200, 
+.marketing-dark .border-slate-300 {
+  border-color: #27272a !important;
+}
+
+/* Maintain special colored badges but adapt for dark mode */
+.marketing-dark .bg-blue-50, .marketing-dark .bg-blue-50\/50 { background-color: rgba(59, 130, 246, 0.1) !important; color: #60a5fa !important; border-color: rgba(59, 130, 246, 0.2) !important; }
+.marketing-dark .bg-green-50, .marketing-dark .bg-green-50\/50 { background-color: rgba(34, 197, 94, 0.1) !important; color: #4ade80 !important; border-color: rgba(34, 197, 94, 0.2) !important; }
+.marketing-dark .bg-red-50, .marketing-dark .bg-red-50\/50 { background-color: rgba(239, 68, 68, 0.1) !important; color: #f87171 !important; border-color: rgba(239, 68, 68, 0.2) !important; }
+.marketing-dark .bg-orange-50, .marketing-dark .bg-orange-50\/50 { background-color: rgba(249, 115, 22, 0.1) !important; color: #fb923c !important; border-color: rgba(249, 115, 22, 0.2) !important; }
+.marketing-dark .bg-amber-50, .marketing-dark .bg-amber-50\/50 { background-color: rgba(245, 158, 11, 0.1) !important; color: #fbbf24 !important; border-color: rgba(245, 158, 11, 0.2) !important; }
+.marketing-dark .bg-indigo-50, .marketing-dark .bg-indigo-50\/50, .marketing-dark .bg-indigo-100\/50 { background-color: rgba(99, 102, 241, 0.1) !important; color: #818cf8 !important; border-color: rgba(99, 102, 241, 0.2) !important; }
+.marketing-dark .bg-emerald-50, .marketing-dark .bg-emerald-50\/50 { background-color: rgba(16, 185, 129, 0.1) !important; color: #34d399 !important; border-color: rgba(16, 185, 129, 0.2) !important; }
+.marketing-dark .bg-purple-50, .marketing-dark .bg-purple-50\/50 { background-color: rgba(168, 85, 247, 0.1) !important; color: #c084fc !important; border-color: rgba(168, 85, 247, 0.2) !important; }
+
+/* Keep shadows visible in dark */
+.marketing-dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.8) !important; }
+.marketing-dark .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.8) !important; }
+.marketing-dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.8) !important; }
+
+/* Inputs and Forms */
+.marketing-dark input,
+.marketing-dark textarea,
+.marketing-dark select {
+  background-color: #0a0a0a !important;
+  color: #f1f1f1 !important;
+  border-color: #333333 !important;
+}
+.marketing-dark input.bg-transparent,
+.marketing-dark textarea.bg-transparent,
+.marketing-dark select.bg-transparent {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+.marketing-dark input::placeholder,
+.marketing-dark textarea::placeholder {
+  color: #666666 !important;
+}
+.marketing-dark input[type="date"]::-webkit-calendar-picker-indicator,
+.marketing-dark input[type="time"]::-webkit-calendar-picker-indicator,
+.marketing-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.marketing-dark input[type="month"]::-webkit-calendar-picker-indicator,
+.marketing-dark input[type="week"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Gráficos Recharts en Modo Oscuro */
+.marketing-dark .recharts-cartesian-axis-tick-value tspan,
+.marketing-dark .recharts-legend-item-text {
+  fill: #a1a1aa !important;
+}
+.marketing-dark .recharts-default-tooltip {
+  background-color: #181818 !important;
+  border-color: #333333 !important;
+}
+.marketing-dark .recharts-tooltip-item-name,
+.marketing-dark .recharts-tooltip-item-value,
+.marketing-dark .recharts-tooltip-item-separator,
+.marketing-dark .recharts-tooltip-label {
+  color: #f1f1f1 !important;
+}
+.marketing-dark .recharts-cartesian-grid-horizontal line,
+.marketing-dark .recharts-cartesian-grid-vertical line {
+  stroke: #2a2a2a !important;
+}
+
+/* Custom Scrollbars for Dark Mode */
+.marketing-dark ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.marketing-dark ::-webkit-scrollbar-track {
+  background: #111111;
+  border-left: 1px solid #222222;
+  border-top: 1px solid #222222;
+}
+
+.marketing-dark ::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 6px;
+  border: 3px solid #111111;
+}
+
+.marketing-dark ::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+.marketing-dark {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #111111;
+}
+
+/* Chat Bottom Gradient */
+.chat-bottom-gradient {
+  background-image: linear-gradient(to top, #f8fafc, #f8fafc 50%, transparent);
+}
+
+.marketing-dark .chat-bottom-gradient {
+  background-image: linear-gradient(to top, #181818, #181818 50%, transparent) !important;
+}
+

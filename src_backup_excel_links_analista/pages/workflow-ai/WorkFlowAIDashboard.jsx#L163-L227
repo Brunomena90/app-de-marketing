@@ -1,0 +1,73 @@
+    // Cargar datos y guardar contexto
+    const loadAppData = useCallback(async () => {
+        if (!activeEmpresa) return;
+        setLoadingData(true);
+        try {
+            const empresa = activeEmpresa === 'Todas' ? null : activeEmpresa;
+            const results = {
+                solicitudes: [],
+                campanas: [],
+                cotizaciones: []
+            };
+
+            // 1. Cargar Solicitudes (Fuerza Bruta Estratégica)
+            const reqQ = empresa
+                ? query(collection(db, 'requests'), where('empresa', '==', empresa), orderBy('createdAt', 'desc'), limit(500))
+                : query(collection(db, 'requests'), orderBy('createdAt', 'desc'), limit(500));
+            const reqSnap = await getDocs(reqQ);
+            results.solicitudes = reqSnap.docs.map(d => ({
+                id: d.id,
+                titulo: d.data().titulo || d.data().title,
+                estado: d.data().estado || d.data().status,
+                prioridad: d.data().prioridad,
+                tipo: d.data().tipoVideo || d.data().tipo
+            }));
+
+            // 2. Cargar Campañas
+            try {
+                const campQ = empresa
+                    ? query(collection(db, 'campaigns'), where('empresa', '==', empresa), limit(200))
+                    : query(collection(db, 'campaigns'), limit(200));
+                const campSnap = await getDocs(campQ);
+                results.campanas = campSnap.docs.map(d => ({
+                    id: d.id,
+                    nombre: d.data().nombre,
+                    estado: d.data().estado
+                }));
+            } catch (_) { results.campanas = []; }
+
+            // 3. Cargar Cotizaciones (CRM)
+            try {
+                const crmQ = empresa
+                    ? query(collection(db, 'cotizaciones'), where('empresa', '==', empresa), limit(200))
+                    : query(collection(db, 'cotizaciones'), limit(200));
+                const crmSnap = await getDocs(crmQ);
+                results.cotizaciones = crmSnap.docs.map(d => ({
+                    id: d.id,
+                    cliente: d.data().cliente,
+                    monto: d.data().monto,
+                    estado: d.data().estado
+                }));
+            } catch (_) { results.cotizaciones = []; }
+
+            // Generar Resumen Estratégico Basal
+            results._stats = {
+                totalSolicitudes: results.solicitudes.length,
+                estados: results.solicitudes.reduce((acc, s) => {
+                    const est = s.estado || 'pendiente';
+                    acc[est] = (acc[est] || 0) + 1;
+                    return acc;
+                }, {}),
+                empresaActual: activeEmpresa
+            };
+
+            console.log(`Artories Data Engine: Sincronizados ${results.solicitudes.length} registros para ${activeEmpresa}.`);
+            setAppData(results);
+            return results;
+        } catch (err) {
+            console.error('Error crítico en sincronización:', err);
+            return null;
+        } finally {
+            setLoadingData(false);
+        }
+    }, [activeEmpresa]);

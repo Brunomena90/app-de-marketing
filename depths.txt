@@ -1,0 +1,1440 @@
+1: [0] import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+=== DEPTH DROPPED BELOW 1 ===
+2: [0] import { useParams, useNavigate } from 'react-router-dom';
+=== DEPTH DROPPED BELOW 1 ===
+3: [0] import { ArrowLeft, CheckCircle, Trash2, Plus, Link as LinkIcon, ExternalLink, FileDown, Edit2, Save, User, Calendar, Clock, PlayCircle, Layers, GripVertical, Megaphone, X, History, PanelLeftClose, PanelLeftOpen, Archive, RefreshCcw, RotateCcw, FileText } from 'lucide-react';
+=== DEPTH DROPPED BELOW 1 ===
+4: [0] import Accordion from '../components/Accordion';
+=== DEPTH DROPPED BELOW 1 ===
+5: [0] import { doc, updateDoc, collection, query, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
+=== DEPTH DROPPED BELOW 1 ===
+6: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+7: [0] import { db } from '../firebase';
+=== DEPTH DROPPED BELOW 1 ===
+8: [0] import { toast } from 'sonner';
+=== DEPTH DROPPED BELOW 1 ===
+9: [0] import jsPDF from 'jspdf';
+=== DEPTH DROPPED BELOW 1 ===
+10: [0] import autoTable from 'jspdf-autotable';
+=== DEPTH DROPPED BELOW 1 ===
+11: [0] import { useAuth } from '../context/AuthContext';
+=== DEPTH DROPPED BELOW 1 ===
+12: [0] import Modal from '../components/Modal';
+=== DEPTH DROPPED BELOW 1 ===
+13: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+14: [0] // --- SUB-COMPONENTE: TEXTAREA AUTO-AJUSTABLE ---
+=== DEPTH DROPPED BELOW 1 ===
+15: [0] const AutoResizeTextarea = ({ value, onChange, onBlur, disabled, isCompleted }) => {
+=== DEPTH DROPPED BELOW 1 ===
+16: [0]     const textareaRef = useRef(null);
+=== DEPTH DROPPED BELOW 1 ===
+17: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+18: [0]     useLayoutEffect(() => {
+=== DEPTH DROPPED BELOW 1 ===
+19: [0]         if (textareaRef.current) {
+=== DEPTH DROPPED BELOW 1 ===
+20: [0]             textareaRef.current.style.height = 'inherit';
+=== DEPTH DROPPED BELOW 1 ===
+21: [0]             textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 24)}px`;
+=== DEPTH DROPPED BELOW 1 ===
+22: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+23: [0]     }, [value]);
+=== DEPTH DROPPED BELOW 1 ===
+24: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+25: [0]     return (
+=== DEPTH DROPPED BELOW 1 ===
+26: [0]         <textarea
+=== DEPTH DROPPED BELOW 1 ===
+27: [0]             ref={textareaRef}
+=== DEPTH DROPPED BELOW 1 ===
+28: [0]             value={value}
+=== DEPTH DROPPED BELOW 1 ===
+29: [0]             onChange={onChange}
+=== DEPTH DROPPED BELOW 1 ===
+30: [0]             onBlur={onBlur}
+=== DEPTH DROPPED BELOW 1 ===
+31: [0]             disabled={disabled}
+=== DEPTH DROPPED BELOW 1 ===
+32: [0]             rows={1}
+=== DEPTH DROPPED BELOW 1 ===
+33: [0]             spellCheck={true}
+=== DEPTH DROPPED BELOW 1 ===
+34: [0]             lang="es-PE"
+=== DEPTH DROPPED BELOW 1 ===
+35: [0]             className={`text-sm w-full bg-transparent outline-none border-b border-transparent focus:border-blue-300 resize-none overflow-hidden block transition-all ${isCompleted ? 'line-through text-gray-400' : 'text-gray-700'
+=== DEPTH DROPPED BELOW 1 ===
+36: [0]                 }`}
+=== DEPTH DROPPED BELOW 1 ===
+37: [0]             style={{ minHeight: '24px', lineHeight: '1.5' }}
+=== DEPTH DROPPED BELOW 1 ===
+38: [0]         />
+=== DEPTH DROPPED BELOW 1 ===
+39: [0]     );
+=== DEPTH DROPPED BELOW 1 ===
+40: [0] };
+=== DEPTH DROPPED BELOW 1 ===
+41: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+42: [0] const RequestDetailPage = () => {
+=== DEPTH DROPPED BELOW 1 ===
+43: [0]     const { id } = useParams();
+=== DEPTH DROPPED BELOW 1 ===
+44: [0]     const navigate = useNavigate();
+=== DEPTH DROPPED BELOW 1 ===
+45: [0]     const { user, isAdmin } = useAuth();
+=== DEPTH DROPPED BELOW 1 ===
+46: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+47: [0]     const [request, setRequest] = useState(null);
+=== DEPTH DROPPED BELOW 1 ===
+48: [0]     const [loading, setLoading] = useState(true);
+=== DEPTH DROPPED BELOW 1 ===
+49: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+50: [0]     const [checklist, setChecklist] = useState([]);
+=== DEPTH DROPPED BELOW 1 ===
+51: [0]     const [newTask, setNewTask] = useState("");
+=== DEPTH DROPPED BELOW 1 ===
+52: [0]     const [linkInput, setLinkInput] = useState("");
+=== DEPTH DROPPED BELOW 1 ===
+53: [0]     const [isEditingLink, setIsEditingLink] = useState(false);
+=== DEPTH DROPPED BELOW 1 ===
+54: [0]     const [editedTitle, setEditedTitle] = useState("");
+=== DEPTH DROPPED BELOW 1 ===
+55: [0]     const [isEditingTitle, setIsEditingTitle] = useState(false);
+=== DEPTH DROPPED BELOW 1 ===
+56: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+57: [0]     const [editDeliveryDate, setEditDeliveryDate] = useState("");
+=== DEPTH DROPPED BELOW 1 ===
+58: [0]     const [recordings, setRecordings] = useState([]);
+=== DEPTH DROPPED BELOW 1 ===
+59: [0]     const [activeCampaigns, setActiveCampaigns] = useState([]);
+=== DEPTH DROPPED BELOW 1 ===
+60: [0]     const [areas, setAreas] = useState([]);
+=== DEPTH DROPPED BELOW 1 ===
+61: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+62: [0]     // Estado para el Drag and Drop
+=== DEPTH DROPPED BELOW 1 ===
+63: [0]     const [draggedItemIndex, setDraggedItemIndex] = useState(null);
+=== DEPTH DROPPED BELOW 1 ===
+64: [0]     // Estado para Menú de Exportación
+=== DEPTH DROPPED BELOW 1 ===
+65: [0]     const [showExportMenu, setShowExportMenu] = useState(false);
+=== DEPTH DROPPED BELOW 1 ===
+66: [0]     // Estado para Modo Compacto (Ocultar info general)
+=== DEPTH DROPPED BELOW 1 ===
+67: [0]     const [isCompactMode, setIsCompactMode] = useState(false);
+=== DEPTH DROPPED BELOW 1 ===
+68: [0]     const [editRequestDate, setEditRequestDate] = useState(""); // Nuevo estado para fecha de solicitud
+=== DEPTH DROPPED BELOW 1 ===
+69: [0]     const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
+=== DEPTH DROPPED BELOW 1 ===
+70: [0]     const [reopenReason, setReopenReason] = useState("");
+=== DEPTH DROPPED BELOW 1 ===
+71: [0]     const [isReopening, setIsReopening] = useState(false);
+=== DEPTH DROPPED BELOW 1 ===
+72: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+73: [0]     const normalize = (str) => str ? str.trim().toLowerCase() : '';
+=== DEPTH DROPPED BELOW 1 ===
+74: [0]     const userRole = normalize(user?.role);
+=== DEPTH DROPPED BELOW 1 ===
+75: [0]     const isEditor = userRole === 'editor';
+=== DEPTH DROPPED BELOW 1 ===
+76: [0]     const isJefe = userRole === 'jefe';
+=== DEPTH DROPPED BELOW 1 ===
+77: [0]     const canEdit = isAdmin || isEditor;
+=== DEPTH DROPPED BELOW 1 ===
+78: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+79: [0]     useEffect(() => {
+=== DEPTH DROPPED BELOW 1 ===
+80: [0]         if (!id) return;
+=== DEPTH DROPPED BELOW 1 ===
+81: [0]         const unsub = onSnapshot(doc(db, "solicitudes_contenido", id), (docSnap) => {
+=== DEPTH DROPPED BELOW 1 ===
+82: [0]             if (docSnap.exists()) {
+=== DEPTH DROPPED BELOW 1 ===
+83: [0]                 const data = { id: docSnap.id, ...docSnap.data() };
+=== DEPTH DROPPED BELOW 1 ===
+84: [0]                 setRequest(data);
+=== DEPTH DROPPED BELOW 1 ===
+85: [0]                 // Solo actualizamos checklist si NO estamos arrastrando para evitar conflictos visuales
+=== DEPTH DROPPED BELOW 1 ===
+86: [0]                 if (draggedItemIndex === null) {
+=== DEPTH DROPPED BELOW 1 ===
+87: [0]                     setChecklist(data.checklist || []);
+=== DEPTH DROPPED BELOW 1 ===
+88: [0]                 }
+=== DEPTH DROPPED BELOW 1 ===
+89: [0]                 // Solo actualizamos el título si NO estamos editándolo para que no salte el cursor
+=== DEPTH DROPPED BELOW 1 ===
+90: [0]                 if (!isEditingTitle) {
+=== DEPTH DROPPED BELOW 1 ===
+91: [0]                     setEditedTitle(data.title || "");
+=== DEPTH DROPPED BELOW 1 ===
+92: [0]                 }
+=== DEPTH DROPPED BELOW 1 ===
+93: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+94: [0]                 if (!linkInput) {
+=== DEPTH DROPPED BELOW 1 ===
+95: [0]                     const url = data.finalLink || data.link || "";
+=== DEPTH DROPPED BELOW 1 ===
+96: [0]                     setLinkInput(url);
+=== DEPTH DROPPED BELOW 1 ===
+97: [0]                     setIsEditingLink(!url);
+=== DEPTH DROPPED BELOW 1 ===
+98: [0]                 }
+=== DEPTH DROPPED BELOW 1 ===
+99: [0]                 if (!editDeliveryDate) setEditDeliveryDate(data.deliveryDate || "");
+=== DEPTH DROPPED BELOW 1 ===
+100: [0]                 setRecordings(data.recordings || []);
+=== DEPTH DROPPED BELOW 1 ===
+101: [0]                 if (!editRequestDate || editRequestDate === "") setEditRequestDate(data.requestDate || "");
+=== DEPTH DROPPED BELOW 1 ===
+102: [0]             } else {
+=== DEPTH DROPPED BELOW 1 ===
+103: [0]                 toast.error("Solicitud no encontrada");
+=== DEPTH DROPPED BELOW 1 ===
+104: [0]                 navigate('/solicitudes');
+=== DEPTH DROPPED BELOW 1 ===
+105: [0]             }
+=== DEPTH DROPPED BELOW 1 ===
+106: [0]             setLoading(false);
+=== DEPTH DROPPED BELOW 1 ===
+107: [0]         });
+=== DEPTH DROPPED BELOW 1 ===
+108: [0]         return () => unsub();
+=== DEPTH DROPPED BELOW 1 ===
+109: [0]     }, [id, navigate, draggedItemIndex, isEditingTitle]); // Añadido isEditingTitle a dependencias
+=== DEPTH DROPPED BELOW 1 ===
+110: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+111: [0]     useEffect(() => {
+=== DEPTH DROPPED BELOW 1 ===
+112: [0]         if (canEdit) {
+=== DEPTH DROPPED BELOW 1 ===
+113: [0]             const qCamp = query(collection(db, "campanas"), orderBy("createdAt", "desc"));
+=== DEPTH DROPPED BELOW 1 ===
+114: [0]             const unsubCamp = onSnapshot(qCamp, (snap) => {
+=== DEPTH DROPPED BELOW 1 ===
+115: [0]                 const activeOnly = snap.docs.map(d => d.data()).filter(c => c.status === 'activa').map(c => c.name);
+=== DEPTH DROPPED BELOW 1 ===
+116: [0]                 setActiveCampaigns(activeOnly);
+=== DEPTH DROPPED BELOW 1 ===
+117: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+118: [0]             const qAreas = query(collection(db, "areas"), orderBy("name"));
+=== DEPTH DROPPED BELOW 1 ===
+119: [0]             const unsubAreas = onSnapshot(qAreas, (snap) => {
+=== DEPTH DROPPED BELOW 1 ===
+120: [0]                 setAreas(snap.docs.map(d => d.data()));
+=== DEPTH DROPPED BELOW 1 ===
+121: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+122: [0]             return () => { unsubCamp(); unsubAreas(); };
+=== DEPTH DROPPED BELOW 1 ===
+123: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+124: [0]     }, [canEdit]);
+=== DEPTH DROPPED BELOW 1 ===
+125: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+126: [0]     if (loading) return <div className="p-10 text-center text-gray-500">Cargando información...</div>;
+=== DEPTH DROPPED BELOW 1 ===
+127: [0]     if (!request) return null;
+=== DEPTH DROPPED BELOW 1 ===
+128: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+129: [0]     const reqArea = normalize(request.area);
+=== DEPTH DROPPED BELOW 1 ===
+130: [0]     const userArea = normalize(user?.area);
+=== DEPTH DROPPED BELOW 1 ===
+131: [0]     const canApprove = isAdmin || isEditor || (isJefe && reqArea === userArea);
+=== DEPTH DROPPED BELOW 1 ===
+132: [0]     const isPlanApproved = request.status && (request.status === 'En Proceso' || request.status.startsWith('Completado'));
+=== DEPTH DROPPED BELOW 1 ===
+133: [0]     const canModifyPlan = !isPlanApproved; // CUALQUIER USUARIO puede modificar si no está bloqueado
+=== DEPTH DROPPED BELOW 1 ===
+134: [0]     const canLockPlan = isAdmin || isEditor; // SOLO Admin/Editor pueden bloquear
+=== DEPTH DROPPED BELOW 1 ===
+135: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+136: [0]     // Logic for Deliverable Approval
+=== DEPTH DROPPED BELOW 1 ===
+137: [0]     const canApproveDeliverable = isAdmin || isEditor || isJefe; // Admin, Editor, or ANY Jefe can approve deliverable
+=== DEPTH DROPPED BELOW 1 ===
+138: [0]     const canCloseRequest = isAdmin || isEditor; // Only Admin/Editor can close
+=== DEPTH DROPPED BELOW 1 ===
+139: [0]     const hasUserApprovedDeliverable = request.deliverableApprovals?.some(ap => ap.uid === user?.uid);
+=== DEPTH DROPPED BELOW 1 ===
+140: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+141: [0]     const isFinalApproved = request.status && request.status.startsWith('Completado');
+=== DEPTH DROPPED BELOW 1 ===
+142: [0]     const currentCampaign = request.campaign || request.campana || "";
+=== DEPTH DROPPED BELOW 1 ===
+143: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+144: [0]     const ensureUrl = (url) => { if (!url) return ''; return url.startsWith('http') ? url : `https://${url}`; };
+=== DEPTH DROPPED BELOW 1 ===
+145: [0]     const isValidUrl = (string) => { try { return Boolean(new URL(string)); } catch (e) { return false; } };
+=== DEPTH DROPPED BELOW 1 ===
+146: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+147: [0]     const updateField = async (field, value) => {
+=== DEPTH DROPPED BELOW 1 ===
+148: [0]         try { await updateDoc(doc(db, "solicitudes_contenido", request.id), { [field]: value }); toast.success("Actualizado"); } catch (e) { toast.error("Error"); }
+=== DEPTH DROPPED BELOW 1 ===
+149: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+150: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+151: [0]     const updateRecordingsDB = async (currentRecs) => {
+=== DEPTH DROPPED BELOW 1 ===
+152: [0]         const filtered = currentRecs.filter(r => r.date);
+=== DEPTH DROPPED BELOW 1 ===
+153: [0]         try {
+=== DEPTH DROPPED BELOW 1 ===
+154: [0]             await updateDoc(doc(db, "solicitudes_contenido", request.id), { recordings: filtered });
+=== DEPTH DROPPED BELOW 1 ===
+155: [0]             setRequest(prev => ({ ...prev, recordings: filtered }));
+=== DEPTH DROPPED BELOW 1 ===
+156: [0]         } catch (e) { toast.error("Error al guardar fechas"); }
+=== DEPTH DROPPED BELOW 1 ===
+157: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+158: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+159: [0]     // --- LÓGICA DE DRAG AND DROP ---
+=== DEPTH DROPPED BELOW 1 ===
+160: [0]     const handleDragStart = (e, index) => {
+=== DEPTH DROPPED BELOW 1 ===
+161: [0]         setDraggedItemIndex(index);
+=== DEPTH DROPPED BELOW 1 ===
+162: [0]         e.dataTransfer.effectAllowed = "move";
+=== DEPTH DROPPED BELOW 1 ===
+163: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+164: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+165: [0]     const handleDragEnter = (e, index) => {
+=== DEPTH DROPPED BELOW 1 ===
+166: [0]         if (draggedItemIndex === null || draggedItemIndex === index) return;
+=== DEPTH DROPPED BELOW 1 ===
+167: [0]         const newList = [...checklist];
+=== DEPTH DROPPED BELOW 1 ===
+168: [0]         const itemToMove = newList[draggedItemIndex];
+=== DEPTH DROPPED BELOW 1 ===
+169: [0]         newList.splice(draggedItemIndex, 1);
+=== DEPTH DROPPED BELOW 1 ===
+170: [0]         newList.splice(index, 0, itemToMove);
+=== DEPTH DROPPED BELOW 1 ===
+171: [0]         setDraggedItemIndex(index);
+=== DEPTH DROPPED BELOW 1 ===
+172: [0]         setChecklist(newList);
+=== DEPTH DROPPED BELOW 1 ===
+173: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+174: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+175: [0]     const handleDragEnd = async () => {
+=== DEPTH DROPPED BELOW 1 ===
+176: [0]         setDraggedItemIndex(null);
+=== DEPTH DROPPED BELOW 1 ===
+177: [0]         try { await updateDoc(doc(db, "solicitudes_contenido", request.id), { checklist: checklist }); }
+=== DEPTH DROPPED BELOW 1 ===
+178: [0]         catch (error) { toast.error("Error al guardar el orden"); }
+=== DEPTH DROPPED BELOW 1 ===
+179: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+180: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+181: [0]     const saveChecklist = async (l) => { setChecklist(l); await updateDoc(doc(db, "solicitudes_contenido", request.id), { checklist: l }); };
+=== DEPTH DROPPED BELOW 1 ===
+182: [0]     const addTask = async () => { if (newTask.trim()) { const l = [...checklist, { text: newTask, completed: false, type: 'Solo Video' }]; await saveChecklist(l); setNewTask(""); } };
+=== DEPTH DROPPED BELOW 1 ===
+183: [0]     const toggleTask = async (i) => { const l = [...checklist]; l[i].completed = !l[i].completed; await saveChecklist(l); };
+=== DEPTH DROPPED BELOW 1 ===
+184: [0]     const deleteTask = async (i) => { const l = [...checklist]; l.splice(i, 1); await saveChecklist(l); };
+=== DEPTH DROPPED BELOW 1 ===
+185: [0]     const changeTaskType = async (i, v) => { const l = [...checklist]; l[i].type = v; await saveChecklist(l); };
+=== DEPTH DROPPED BELOW 1 ===
+186: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+187: [0]     const updateTaskText = (i, text) => { const l = [...checklist]; l[i].text = text; setChecklist(l); };
+=== DEPTH DROPPED BELOW 1 ===
+188: [0]     const saveTaskText = async () => { await updateDoc(doc(db, "solicitudes_contenido", request.id), { checklist: checklist }); };
+=== DEPTH DROPPED BELOW 1 ===
+189: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+190: [0]     const updateTitle = async () => { await updateDoc(doc(db, "solicitudes_contenido", request.id), { title: editedTitle }); setIsEditingTitle(false); toast.success("Título actualizado"); };
+=== DEPTH DROPPED BELOW 1 ===
+191: [0]     const togglePlanLock = () => {
+=== DEPTH DROPPED BELOW 1 ===
+192: [0]         if (isPlanApproved) {
+=== DEPTH DROPPED BELOW 1 ===
+193: [0]             toast("¿Desbloquear Plan de Producción?", {
+=== DEPTH DROPPED BELOW 1 ===
+194: [0]                 description: "El plan volverá a ser editable para todos los usuarios.",
+=== DEPTH DROPPED BELOW 1 ===
+195: [0]                 action: {
+=== DEPTH DROPPED BELOW 1 ===
+196: [0]                     label: "Desbloquear",
+=== DEPTH DROPPED BELOW 1 ===
+197: [0]                     onClick: async () => {
+=== DEPTH DROPPED BELOW 1 ===
+198: [0]                         await updateDoc(doc(db, "solicitudes_contenido", request.id), { status: 'Solicitado', planApprovedBy: null });
+=== DEPTH DROPPED BELOW 1 ===
+199: [0]                         toast.success("Plan Desbloqueado");
+=== DEPTH DROPPED BELOW 1 ===
+200: [0]                     }
+=== DEPTH DROPPED BELOW 1 ===
+201: [0]                 },
+=== DEPTH DROPPED BELOW 1 ===
+202: [0]                 cancel: { label: "Cancelar" }
+=== DEPTH DROPPED BELOW 1 ===
+203: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+204: [0]         } else {
+=== DEPTH DROPPED BELOW 1 ===
+205: [0]             toast("¿Bloquear Plan de Producción?", {
+=== DEPTH DROPPED BELOW 1 ===
+206: [0]                 description: "El plan pasará a estado 'En Proceso' y ya no será editable.",
+=== DEPTH DROPPED BELOW 1 ===
+207: [0]                 action: {
+=== DEPTH DROPPED BELOW 1 ===
+208: [0]                     label: "Bloquear",
+=== DEPTH DROPPED BELOW 1 ===
+209: [0]                     onClick: async () => {
+=== DEPTH DROPPED BELOW 1 ===
+210: [0]                         await updateDoc(doc(db, "solicitudes_contenido", request.id), { status: 'En Proceso', planApprovedBy: user.name });
+=== DEPTH DROPPED BELOW 1 ===
+211: [0]                         toast.success("Plan Bloqueado");
+=== DEPTH DROPPED BELOW 1 ===
+212: [0]                     }
+=== DEPTH DROPPED BELOW 1 ===
+213: [0]                 },
+=== DEPTH DROPPED BELOW 1 ===
+214: [0]                 cancel: { label: "Cancelar" }
+=== DEPTH DROPPED BELOW 1 ===
+215: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+216: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+217: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+218: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+219: [0]     const saveLink = async () => { if (!isValidUrl(linkInput)) return toast.error("Link inválido"); await updateDoc(doc(db, "solicitudes_contenido", request.id), { finalLink: linkInput }); setIsEditingLink(false); toast.success("Guardado"); };
+=== DEPTH DROPPED BELOW 1 ===
+220: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+221: [0]     const handleApproveDeliverable = async () => {
+=== DEPTH DROPPED BELOW 1 ===
+222: [0]         try {
+=== DEPTH DROPPED BELOW 1 ===
+223: [0]             const approvalData = {
+=== DEPTH DROPPED BELOW 1 ===
+224: [0]                 name: user.name || "Usuario",
+=== DEPTH DROPPED BELOW 1 ===
+225: [0]                 role: user.role || "unknown",
+=== DEPTH DROPPED BELOW 1 ===
+226: [0]                 uid: user.uid || "unknown",
+=== DEPTH DROPPED BELOW 1 ===
+227: [0]                 date: new Date().toISOString()
+=== DEPTH DROPPED BELOW 1 ===
+228: [0]             };
+=== DEPTH DROPPED BELOW 1 ===
+229: [0]             const currentApprovals = request.deliverableApprovals || [];
+=== DEPTH DROPPED BELOW 1 ===
+230: [0]             // Optimistic update prevention handled by UI, but double check
+=== DEPTH DROPPED BELOW 1 ===
+231: [0]             if (currentApprovals.some(ap => ap.uid === user.uid)) return;
+=== DEPTH DROPPED BELOW 1 ===
+232: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+233: [0]             await updateDoc(doc(db, "solicitudes_contenido", request.id), {
+=== DEPTH DROPPED BELOW 1 ===
+234: [0]                 deliverableApprovals: [...currentApprovals, approvalData]
+=== DEPTH DROPPED BELOW 1 ===
+235: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+236: [0]             toast.success("Has aprobado el entregable");
+=== DEPTH DROPPED BELOW 1 ===
+237: [0]         } catch (error) {
+=== DEPTH DROPPED BELOW 1 ===
+238: [0]             console.error(error);
+=== DEPTH DROPPED BELOW 1 ===
+239: [0]             toast.error("Error al aprobar");
+=== DEPTH DROPPED BELOW 1 ===
+240: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+241: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+242: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+243: [0]     const handleCloseRequest = () => {
+=== DEPTH DROPPED BELOW 1 ===
+244: [0]         if (!request.finalLink && !linkInput) return toast.error("Falta link");
+=== DEPTH DROPPED BELOW 1 ===
+245: [0]         toast("¿Cerrar Solicitud?", {
+=== DEPTH DROPPED BELOW 1 ===
+246: [0]             description: "La solicitud pasará a estado Completado.",
+=== DEPTH DROPPED BELOW 1 ===
+247: [0]             action: {
+=== DEPTH DROPPED BELOW 1 ===
+248: [0]                 label: "Cerrar",
+=== DEPTH DROPPED BELOW 1 ===
+249: [0]                 onClick: async () => {
+=== DEPTH DROPPED BELOW 1 ===
+250: [0]                     await updateDoc(doc(db, "solicitudes_contenido", request.id), {
+=== DEPTH DROPPED BELOW 1 ===
+251: [0]                         status: 'Completado',
+=== DEPTH DROPPED BELOW 1 ===
+252: [0]                         finalApprovedBy: user.name,
+=== DEPTH DROPPED BELOW 1 ===
+253: [0]                         completedAt: new Date().toISOString()
+=== DEPTH DROPPED BELOW 1 ===
+254: [0]                     });
+=== DEPTH DROPPED BELOW 1 ===
+255: [0]                     toast.success("Solicitud Cerrada");
+=== DEPTH DROPPED BELOW 1 ===
+256: [0]                     navigate('/solicitudes');
+=== DEPTH DROPPED BELOW 1 ===
+257: [0]                 }
+=== DEPTH DROPPED BELOW 1 ===
+258: [0]             },
+=== DEPTH DROPPED BELOW 1 ===
+259: [0]             cancel: { label: "Cancelar" }
+=== DEPTH DROPPED BELOW 1 ===
+260: [0]         });
+=== DEPTH DROPPED BELOW 1 ===
+261: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+262: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+263: [0]     const handleReopenRequest = async () => {
+=== DEPTH DROPPED BELOW 1 ===
+264: [0]         if (!reopenReason.trim()) return toast.error("El motivo es obligatorio");
+=== DEPTH DROPPED BELOW 1 ===
+265: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+266: [0]         setIsReopening(true);
+=== DEPTH DROPPED BELOW 1 ===
+267: [0]         try {
+=== DEPTH DROPPED BELOW 1 ===
+268: [0]             const todayStr = new Date().toISOString().split('T')[0];
+=== DEPTH DROPPED BELOW 1 ===
+269: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+270: [0]             // 1. Crear el Clon con el motivo en el briefing
+=== DEPTH DROPPED BELOW 1 ===
+271: [0]             const newBriefing = (request.briefing || "") +
+=== DEPTH DROPPED BELOW 1 ===
+272: [0]                 "\n\n--- MOTIVO DE REAPERTURA ---\n" +
+=== DEPTH DROPPED BELOW 1 ===
+273: [0]                 reopenReason;
+=== DEPTH DROPPED BELOW 1 ===
+274: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+275: [0]             const cloneData = {
+=== DEPTH DROPPED BELOW 1 ===
+276: [0]                 ...request,
+=== DEPTH DROPPED BELOW 1 ===
+277: [0]                 title: request.title,
+=== DEPTH DROPPED BELOW 1 ===
+278: [0]                 requestDate: todayStr,
+=== DEPTH DROPPED BELOW 1 ===
+279: [0]                 createdAt: new Date().toISOString(),
+=== DEPTH DROPPED BELOW 1 ===
+280: [0]                 status: 'Solicitado',
+=== DEPTH DROPPED BELOW 1 ===
+281: [0]                 applicantName: user.name,
+=== DEPTH DROPPED BELOW 1 ===
+282: [0]                 applicantId: user.uid,
+=== DEPTH DROPPED BELOW 1 ===
+283: [0]                 planApprovedBy: null,
+=== DEPTH DROPPED BELOW 1 ===
+284: [0]                 finalApprovedBy: null,
+=== DEPTH DROPPED BELOW 1 ===
+285: [0]                 completedAt: null,
+=== DEPTH DROPPED BELOW 1 ===
+286: [0]                 finalLink: null,
+=== DEPTH DROPPED BELOW 1 ===
+287: [0]                 deliverableApprovals: [],
+=== DEPTH DROPPED BELOW 1 ===
+288: [0]                 planVersions: [],
+=== DEPTH DROPPED BELOW 1 ===
+289: [0]                 reopenedFrom: request.id,
+=== DEPTH DROPPED BELOW 1 ===
+290: [0]                 briefing: newBriefing
+=== DEPTH DROPPED BELOW 1 ===
+291: [0]             };
+=== DEPTH DROPPED BELOW 1 ===
+292: [0]             delete cloneData.id;
+=== DEPTH DROPPED BELOW 1 ===
+293: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+294: [0]             const docRef = await addDoc(collection(db, "solicitudes_contenido"), cloneData);
+=== DEPTH DROPPED BELOW 1 ===
+295: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+296: [0]             // 2. Marcar la Original como Re-editada
+=== DEPTH DROPPED BELOW 1 ===
+297: [0]             await updateDoc(doc(db, "solicitudes_contenido", request.id), {
+=== DEPTH DROPPED BELOW 1 ===
+298: [0]                 status: 'Completado (Re-editada)',
+=== DEPTH DROPPED BELOW 1 ===
+299: [0]                 reopenedAs: docRef.id,
+=== DEPTH DROPPED BELOW 1 ===
+300: [0]                 reopenReason: reopenReason
+=== DEPTH DROPPED BELOW 1 ===
+301: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+302: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+303: [0]             toast.success("Solicitud reabierta con éxito");
+=== DEPTH DROPPED BELOW 1 ===
+304: [0]             setIsReopenModalOpen(false);
+=== DEPTH DROPPED BELOW 1 ===
+305: [0]             setReopenReason("");
+=== DEPTH DROPPED BELOW 1 ===
+306: [0]             navigate(`/solicitudes/${docRef.id}`);
+=== DEPTH DROPPED BELOW 1 ===
+307: [0]         } catch (error) {
+=== DEPTH DROPPED BELOW 1 ===
+308: [0]             console.error(error);
+=== DEPTH DROPPED BELOW 1 ===
+309: [0]             toast.error("Error al reabrir la solicitud");
+=== DEPTH DROPPED BELOW 1 ===
+310: [0]         } finally {
+=== DEPTH DROPPED BELOW 1 ===
+311: [0]             setIsReopening(false);
+=== DEPTH DROPPED BELOW 1 ===
+312: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+313: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+314: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+315: [0]     const handleArchive = async () => {
+=== DEPTH DROPPED BELOW 1 ===
+316: [0]         try {
+=== DEPTH DROPPED BELOW 1 ===
+317: [0]             await updateDoc(doc(db, "solicitudes_contenido", request.id), { archived: true });
+=== DEPTH DROPPED BELOW 1 ===
+318: [0]             toast.success("Solicitud archivada");
+=== DEPTH DROPPED BELOW 1 ===
+319: [0]             navigate('/solicitudes');
+=== DEPTH DROPPED BELOW 1 ===
+320: [0]         } catch (e) { toast.error("Error al archivar"); }
+=== DEPTH DROPPED BELOW 1 ===
+321: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+322: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+323: [0]     const handleUnarchive = async () => {
+=== DEPTH DROPPED BELOW 1 ===
+324: [0]         try {
+=== DEPTH DROPPED BELOW 1 ===
+325: [0]             const today = new Date().toISOString().split('T')[0];
+=== DEPTH DROPPED BELOW 1 ===
+326: [0]             await updateDoc(doc(db, "solicitudes_contenido", request.id), {
+=== DEPTH DROPPED BELOW 1 ===
+327: [0]                 archived: false,
+=== DEPTH DROPPED BELOW 1 ===
+328: [0]                 requestDate: today
+=== DEPTH DROPPED BELOW 1 ===
+329: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+330: [0]             toast.success("Solicitud desarchivada con fecha de hoy");
+=== DEPTH DROPPED BELOW 1 ===
+331: [0]             navigate('/solicitudes');
+=== DEPTH DROPPED BELOW 1 ===
+332: [0]         } catch (e) { toast.error("Error al desarchivar"); }
+=== DEPTH DROPPED BELOW 1 ===
+333: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+334: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+335: [0]     const handleSaveVersion = async () => {
+=== DEPTH DROPPED BELOW 1 ===
+336: [0]         try {
+=== DEPTH DROPPED BELOW 1 ===
+337: [0]             const currentVersions = request.planVersions || [];
+=== DEPTH DROPPED BELOW 1 ===
+338: [0]             const nextVersion = currentVersions.length + 1;
+=== DEPTH DROPPED BELOW 1 ===
+339: [0]             const newVersion = {
+=== DEPTH DROPPED BELOW 1 ===
+340: [0]                 version: nextVersion,
+=== DEPTH DROPPED BELOW 1 ===
+341: [0]                 label: `V${nextVersion}`,
+=== DEPTH DROPPED BELOW 1 ===
+342: [0]                 checklist: checklist, // Snapshot current state
+=== DEPTH DROPPED BELOW 1 ===
+343: [0]                 savedBy: user.name,
+=== DEPTH DROPPED BELOW 1 ===
+344: [0]                 date: new Date().toISOString()
+=== DEPTH DROPPED BELOW 1 ===
+345: [0]             };
+=== DEPTH DROPPED BELOW 1 ===
+346: [0]             await updateDoc(doc(db, "solicitudes_contenido", request.id), {
+=== DEPTH DROPPED BELOW 1 ===
+347: [0]                 planVersions: [newVersion, ...currentVersions]
+=== DEPTH DROPPED BELOW 1 ===
+348: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+349: [0]             toast.success(`Versión ${nextVersion} guardada`);
+=== DEPTH DROPPED BELOW 1 ===
+350: [0]         } catch (error) {
+=== DEPTH DROPPED BELOW 1 ===
+351: [0]             console.error(error);
+=== DEPTH DROPPED BELOW 1 ===
+352: [0]             toast.error("Error al guardar versión");
+=== DEPTH DROPPED BELOW 1 ===
+353: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+354: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+355: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+356: [0]     const handleDeleteVersion = async (e, index) => {
+=== DEPTH DROPPED BELOW 1 ===
+357: [0]         e.stopPropagation(); // Avoid triggering the PDF generation
+=== DEPTH DROPPED BELOW 1 ===
+358: [0]         try {
+=== DEPTH DROPPED BELOW 1 ===
+359: [0]             const currentVersions = [...(request.planVersions || [])];
+=== DEPTH DROPPED BELOW 1 ===
+360: [0]             const versionToDelete = currentVersions[index];
+=== DEPTH DROPPED BELOW 1 ===
+361: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+362: [0]             toast(`¿Eliminar Versión ${versionToDelete.label}?`, {
+=== DEPTH DROPPED BELOW 1 ===
+363: [0]                 description: "Esta acción no se puede deshacer.",
+=== DEPTH DROPPED BELOW 1 ===
+364: [0]                 action: {
+=== DEPTH DROPPED BELOW 1 ===
+365: [0]                     label: "Eliminar",
+=== DEPTH DROPPED BELOW 1 ===
+366: [0]                     onClick: async () => {
+=== DEPTH DROPPED BELOW 1 ===
+367: [0]                         currentVersions.splice(index, 1);
+=== DEPTH DROPPED BELOW 1 ===
+368: [0]                         await updateDoc(doc(db, "solicitudes_contenido", request.id), {
+=== DEPTH DROPPED BELOW 1 ===
+369: [0]                             planVersions: currentVersions
+=== DEPTH DROPPED BELOW 1 ===
+370: [0]                         });
+=== DEPTH DROPPED BELOW 1 ===
+371: [0]                         toast.success(`Versión ${versionToDelete.label} eliminada`);
+=== DEPTH DROPPED BELOW 1 ===
+372: [0]                     }
+=== DEPTH DROPPED BELOW 1 ===
+373: [0]                 },
+=== DEPTH DROPPED BELOW 1 ===
+374: [0]                 cancel: { label: "Cancelar" }
+=== DEPTH DROPPED BELOW 1 ===
+375: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+376: [0]         } catch (error) {
+=== DEPTH DROPPED BELOW 1 ===
+377: [0]             console.error(error);
+=== DEPTH DROPPED BELOW 1 ===
+378: [0]             toast.error("Error al eliminar versión");
+=== DEPTH DROPPED BELOW 1 ===
+379: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+380: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+381: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+382: [0]     const handlePDF = (targetChecklist = null, versionLabel = "") => {
+=== DEPTH DROPPED BELOW 1 ===
+383: [0]         const finalChecklist = targetChecklist || checklist;
+=== DEPTH DROPPED BELOW 1 ===
+384: [0]         const titleSuffix = versionLabel ? `_${versionLabel}` : "";
+=== DEPTH DROPPED BELOW 1 ===
+385: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+386: [0]         const doc = new jsPDF();
+=== DEPTH DROPPED BELOW 1 ===
+387: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+388: [0]         // Header Minimalista (Sin franjas de color)
+=== DEPTH DROPPED BELOW 1 ===
+389: [0]         doc.setFontSize(22);
+=== DEPTH DROPPED BELOW 1 ===
+390: [0]         doc.setFont("helvetica", "bold");
+=== DEPTH DROPPED BELOW 1 ===
+391: [0]         doc.setTextColor(0, 0, 0); // Texto Negro
+=== DEPTH DROPPED BELOW 1 ===
+392: [0]         doc.text("FICHA DE PROYECTO", 105, 20, { align: 'center' });
+=== DEPTH DROPPED BELOW 1 ===
+393: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+394: [0]         doc.setFontSize(9);
+=== DEPTH DROPPED BELOW 1 ===
+395: [0]         doc.setFont("helvetica", "normal");
+=== DEPTH DROPPED BELOW 1 ===
+396: [0]         doc.setTextColor(150, 150, 150);
+=== DEPTH DROPPED BELOW 1 ===
+397: [0]         const versionText = versionLabel ? `Versión: ${versionLabel}` : "Versión: Actual";
+=== DEPTH DROPPED BELOW 1 ===
+398: [0]         doc.text(`${versionText} | Generado el: ${new Date().toLocaleDateString()}`, 105, 28, { align: 'center' });
+=== DEPTH DROPPED BELOW 1 ===
+399: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+400: [0]         // Tabla de Datos Generales
+=== DEPTH DROPPED BELOW 1 ===
+401: [0]         autoTable(doc, {
+=== DEPTH DROPPED BELOW 1 ===
+402: [0]             startY: 40,
+=== DEPTH DROPPED BELOW 1 ===
+403: [0]             theme: 'grid',
+=== DEPTH DROPPED BELOW 1 ===
+404: [0]             headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0], fontStyle: 'bold' },
+=== DEPTH DROPPED BELOW 1 ===
+405: [0]             head: [['DATOS GENERALES', '']],
+=== DEPTH DROPPED BELOW 1 ===
+406: [0]             body: [
+=== DEPTH DROPPED BELOW 1 ===
+407: [0]                 ['Título', request.title],
+=== DEPTH DROPPED BELOW 1 ===
+408: [0]                 ['Solicitante', request.applicantName],
+=== DEPTH DROPPED BELOW 1 ===
+409: [0]                 ['Área', request.area],
+=== DEPTH DROPPED BELOW 1 ===
+410: [0]                 ['Estado', request.status],
+=== DEPTH DROPPED BELOW 1 ===
+411: [0]                 ['Fecha de Solicitud', request.requestDate || '-']
+=== DEPTH DROPPED BELOW 1 ===
+412: [0]             ],
+=== DEPTH DROPPED BELOW 1 ===
+413: [0]             styles: { fontSize: 10 }
+=== DEPTH DROPPED BELOW 1 ===
+414: [0]         });
+=== DEPTH DROPPED BELOW 1 ===
+415: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+416: [0]         // Aprobaciones
+=== DEPTH DROPPED BELOW 1 ===
+417: [0]         const approvals = [];
+=== DEPTH DROPPED BELOW 1 ===
+418: [0]         if (request.planApprovedBy) approvals.push(['Plan Aprobado por:', request.planApprovedBy]);
+=== DEPTH DROPPED BELOW 1 ===
+419: [0]         if (request.finalApprovedBy) approvals.push(['Cierre Aprobado por:', request.finalApprovedBy]);
+=== DEPTH DROPPED BELOW 1 ===
+420: [0]         if (approvals.length > 0) {
+=== DEPTH DROPPED BELOW 1 ===
+421: [0]             autoTable(doc, {
+=== DEPTH DROPPED BELOW 1 ===
+422: [0]                 startY: doc.lastAutoTable.finalY + 10,
+=== DEPTH DROPPED BELOW 1 ===
+423: [0]                 theme: 'plain',
+=== DEPTH DROPPED BELOW 1 ===
+424: [0]                 body: approvals,
+=== DEPTH DROPPED BELOW 1 ===
+425: [0]                 styles: { fontStyle: 'italic', textColor: [100, 100, 100], fontSize: 9 }
+=== DEPTH DROPPED BELOW 1 ===
+426: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+427: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+428: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+429: [0]         // Briefing
+=== DEPTH DROPPED BELOW 1 ===
+430: [0]         if (request.briefing) {
+=== DEPTH DROPPED BELOW 1 ===
+431: [0]             autoTable(doc, {
+=== DEPTH DROPPED BELOW 1 ===
+432: [0]                 startY: doc.lastAutoTable.finalY + 10,
+=== DEPTH DROPPED BELOW 1 ===
+433: [0]                 theme: 'plain',
+=== DEPTH DROPPED BELOW 1 ===
+434: [0]                 head: [['BRIEFING:']],
+=== DEPTH DROPPED BELOW 1 ===
+435: [0]                 body: [[request.briefing]],
+=== DEPTH DROPPED BELOW 1 ===
+436: [0]                 headStyles: { fontStyle: 'bold', textColor: [0, 0, 0] },
+=== DEPTH DROPPED BELOW 1 ===
+437: [0]                 styles: { cellPadding: 2, fontSize: 10 }
+=== DEPTH DROPPED BELOW 1 ===
+438: [0]             });
+=== DEPTH DROPPED BELOW 1 ===
+439: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+440: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+441: [0]         // Checklist / Plan de Producción
+=== DEPTH DROPPED BELOW 1 ===
+442: [0]         const rows = finalChecklist.map(t => [t.completed ? 'OK' : 'PEND', t.text, t.type]);
+=== DEPTH DROPPED BELOW 1 ===
+443: [0]         autoTable(doc, {
+=== DEPTH DROPPED BELOW 1 ===
+444: [0]             startY: doc.lastAutoTable.finalY + 10,
+=== DEPTH DROPPED BELOW 1 ===
+445: [0]             theme: 'grid',
+=== DEPTH DROPPED BELOW 1 ===
+446: [0]             headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+=== DEPTH DROPPED BELOW 1 ===
+447: [0]             head: [['ESTADO', 'TAREA', 'TIPO']],
+=== DEPTH DROPPED BELOW 1 ===
+448: [0]             body: rows.length ? rows : [['-', 'Sin tareas', '-']],
+=== DEPTH DROPPED BELOW 1 ===
+449: [0]             columnStyles: {
+=== DEPTH DROPPED BELOW 1 ===
+450: [0]                 0: { cellWidth: 20, halign: 'center' },
+=== DEPTH DROPPED BELOW 1 ===
+451: [0]                 2: { cellWidth: 35 }
+=== DEPTH DROPPED BELOW 1 ===
+452: [0]             },
+=== DEPTH DROPPED BELOW 1 ===
+453: [0]             styles: { fontSize: 9 }
+=== DEPTH DROPPED BELOW 1 ===
+454: [0]         });
+=== DEPTH DROPPED BELOW 1 ===
+455: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+456: [0]         // Pie de página
+=== DEPTH DROPPED BELOW 1 ===
+457: [0]         const pageCount = doc.internal.getNumberOfPages();
+=== DEPTH DROPPED BELOW 1 ===
+458: [0]         for (let i = 1; i <= pageCount; i++) {
+=== DEPTH DROPPED BELOW 1 ===
+459: [0]             doc.setPage(i);
+=== DEPTH DROPPED BELOW 1 ===
+460: [0]             doc.setFontSize(8);
+=== DEPTH DROPPED BELOW 1 ===
+461: [0]             doc.setTextColor(150, 150, 150);
+=== DEPTH DROPPED BELOW 1 ===
+462: [0]             doc.text(`GCI - Gestión de Solicitudes | Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
+=== DEPTH DROPPED BELOW 1 ===
+463: [0]         }
+=== DEPTH DROPPED BELOW 1 ===
+464: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+465: [0]         doc.save(`Ficha_${request.title}${titleSuffix}.pdf`);
+=== DEPTH DROPPED BELOW 1 ===
+466: [0]         setShowExportMenu(false);
+=== DEPTH DROPPED BELOW 1 ===
+467: [0]     };
+=== DEPTH DROPPED BELOW 1 ===
+468: [0] 
+=== DEPTH DROPPED BELOW 1 ===
+469: [0]     return (
+=== DEPTH DROPPED BELOW 1 ===
+470: [1]         <div className="min-h-screen bg-slate-50 font-sans pb-24 md:pb-12">
+471: [1]             {/* Top App Bar (Sticky) */}
+472: [2]             <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between px-4 py-3 md:px-8 gap-3">
+473: [3]                 <div className="flex items-center gap-3 w-full md:w-auto">
+474: [3]                     <button onClick={() => navigate('/solicitudes')} className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-600 active:scale-95 transition-all outline-none">
+475: [3]                         <ArrowLeft size={24} />
+476: [3]                     </button>
+477: [4]                     <div className="flex-1 min-w-0">
+478: [5]                         <div className="flex items-center gap-2 mb-0.5">
+479: [5]                             <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Detalles de Solicitud</span>
+480: [5]                             {request.archived ? (
+481: [5]                                 <span className="px-2 py-0.5 rounded-full text-[9px] uppercase font-bold tracking-wider bg-slate-600 text-white flex items-center gap-1 shadow-sm"><Archive size={10} /> ARCHIVADO</span>
+482: [5]                             ) : (
+483: [5]                                 <span className={`px-2 py-0.5 rounded-full text-[9px] uppercase font-bold tracking-wider shadow-sm flex items-center gap-1 ${isFinalApproved ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>
+484: [5]                                     {isFinalApproved ? <CheckCircle size={10} /> : null}
+485: [5]                                     {request.status || 'SOLICITADO'}
+486: [5]                                 </span>
+487: [5]                             )}
+488: [4]                         </div>
+489: [4]                         {isEditingTitle && canEdit ? (
+490: [5]                             <div className="flex gap-2 items-center">
+491: [5]                                 <input
+492: [5]                                     value={editedTitle}
+493: [5]                                     onChange={(e) => setEditedTitle(e.target.value)}
+494: [5]                                     className="text-lg md:text-xl font-bold bg-transparent border-b-2 border-blue-500 w-full outline-none text-slate-800"
+495: [5]                                     autoFocus spellCheck={true} lang="es-PE"
+496: [5]                                 />
+497: [5]                                 <button onClick={updateTitle} className="bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded-lg transition-colors"><Save size={16} /></button>
+498: [5]                                 <button onClick={() => setIsEditingTitle(false)} className="bg-slate-200 hover:bg-slate-300 text-slate-600 p-1.5 rounded-lg transition-colors"><X size={16} /></button>
+499: [4]                             </div>
+500: [4]                         ) : (
+501: [5]                             <div className="flex items-center gap-2 group">
+502: [5]                                 <h1 className="text-lg md:text-xl font-bold text-slate-900 leading-tight truncate">{request.title}</h1>
+503: [5]                                 {canEdit && <button onClick={() => setIsEditingTitle(true)} className="text-slate-300 hover:text-blue-600 md:opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit2 size={16} /></button>}
+504: [4]                             </div>
+505: [4]                         )}
+506: [3]                     </div>
+507: [2]                 </div>
+508: [2] 
+509: [3]                 <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-3">
+510: [4]                      <div className="flex items-center gap-1.5 bg-slate-100/50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+511: [4]                         <Calendar size={14} className="text-slate-500" />
+512: [4]                         {canEdit ? (
+513: [4]                             <input
+514: [4]                                 type="date"
+515: [4]                                 value={editRequestDate}
+516: [4]                                 onChange={(e) => {
+517: [4]                                     const val = e.target.value;
+518: [4]                                     setEditRequestDate(val);
+519: [4]                                     updateField('requestDate', val);
+520: [4]                                 }}
+521: [4]                                 className="text-xs border-none bg-transparent outline-none text-slate-700 font-bold p-0 min-w-[100px]"
+522: [4]                             />
+523: [4]                         ) : (
+524: [4]                             <span className="text-xs text-slate-700 font-bold">{request.requestDate || "-"}</span>
+525: [4]                         )}
+526: [3]                     </div>
+527: [2]                 </div>
+528: [1]             </div>
+529: [1] 
+530: [1]             {/* Main Content */}
+531: [2]             <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+532: [3]                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+533: [3]                     {/* LEFT COLUMN: Data View */}
+534: [4]                     <div className="lg:col-span-5 flex flex-col gap-6">
+535: [4]                         
+536: [4]                         {/* Solicitante y Organización */}
+537: [5]                         <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-200">
+538: [5]                             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><User size={14} /> Solicitante</h2>
+539: [6]                             <div className="flex items-center gap-4 mb-5">
+540: [7]                                 <div className="w-14 h-14 rounded-full bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-xl font-bold flex-shrink-0 shadow-inner">
+541: [7]                                     {request.applicantName ? request.applicantName.charAt(0).toUpperCase() : 'U'}
+542: [6]                                 </div>
+543: [7]                                 <div className="flex-1 min-w-0">
+544: [7]                                     <p className="text-base font-bold text-slate-800 line-clamp-1">{request.applicantName || "Usuario"}</p>
+545: [8]                                     <div className="flex items-center gap-1.5 mt-1">
+546: [8]                                         <Layers size={14} className="text-slate-400" />
+547: [8]                                         {canEdit ? (
+548: [8]                                             <select value={request.area || ""} onChange={(e) => updateField('area', e.target.value)} className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-1 outline-none focus:border-blue-400 w-full max-w-[180px]">
+549: [8]                                                 <option value="">-- Seleccionar Área --</option>
+550: [8]                                                 {areas.map((a, i) => (<option key={i} value={a.name}>{a.name}</option>))}
+551: [8]                                                 {request.area && !areas.some(a => a.name === request.area) && <option value={request.area}>{request.area}</option>}
+552: [8]                                             </select>
+553: [8]                                         ) : (
+554: [8]                                             <p className="text-xs font-semibold text-slate-600">{request.area || "-"}</p>
+555: [8]                                         )}
+556: [7]                                     </div>
+557: [6]                                 </div>
+558: [5]                             </div>
+559: [5]                             
+560: [6]                             <div className="pt-4 border-t border-slate-100">
+561: [6]                                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Campaña Asignada</span>
+562: [6]                                 {canEdit ? (
+563: [6]                                     <select value={currentCampaign} onChange={(e) => updateField('campaign', e.target.value)} className="w-full border shadow-sm border-purple-200 rounded-xl px-3 py-2.5 text-sm bg-purple-50 text-purple-700 font-bold focus:ring-2 focus:ring-purple-200 outline-none transition-all">
+564: [6]                                         <option value="">-- Sin Campaña --</option>
+565: [6]                                         {activeCampaigns.map(c => <option key={c} value={c}>{c}</option>)}
+566: [6]                                         {currentCampaign && !activeCampaigns.includes(currentCampaign) && <option value={currentCampaign}>{currentCampaign}</option>}
+567: [6]                                     </select>
+568: [6]                                 ) : (
+569: [6]                                     <div className="p-3 bg-purple-50 text-purple-700 rounded-xl text-sm font-bold flex items-center gap-2 border border-purple-100/50 shadow-sm"><PlayCircle size={16} /> <span className="truncate">{currentCampaign || "Sin Campaña"}</span></div>
+570: [6]                                 )}
+571: [5]                             </div>
+572: [4]                         </div>
+573: [4] 
+574: [4]                         {/* Tiempos y Fechas */}
+575: [5]                         <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-200">
+576: [5]                             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Calendar size={14} /> Cronograma</h2>
+577: [6]                             <div className="space-y-5">
+578: [7]                                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+579: [8]                                     <div className="flex items-center justify-between mb-2">
+580: [8]                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><FileDown size={12}/> Entrega Esperada</span>
+581: [7]                                     </div>
+582: [7]                                     {canEdit ? (
+583: [7]                                         <input type="date" value={editDeliveryDate} onChange={(e) => updateField('deliveryDate', e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 w-full text-sm bg-white shadow-sm focus:ring-2 focus:ring-blue-100 outline-none font-bold text-slate-700" />
+584: [7]                                     ) : (
+585: [7]                                         <span className="text-sm font-bold text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm inline-block w-full">{request.deliveryDate || 'No definida'}</span>
+586: [7]                                     )}
+587: [6]                                 </div>
+588: [6] 
+589: [7]                                 <div className="pt-2">
+590: [8]                                     <div className="flex justify-between items-center mb-3">
+591: [8]                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Clock size={12} /> Fechas de Grabación</span>
+592: [8]                                         {canEdit && <button onClick={() => setRecordings([...recordings, { date: '', startTime: '', endTime: '' }])} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg shadow-sm hover:bg-blue-100 active:scale-95 transition-all flex items-center gap-1"><Plus size={14} /> Añadir</button>}
+593: [7]                                     </div>
+594: [7]                                     
+595: [8]                                     <div className="space-y-3">
+596: [8]                                         {recordings.length === 0 && !(request.recordingStartDate || request.recordingDate) && (
+597: [8]                                             <div className="text-center p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-xs font-medium text-slate-400">Sin grabaciones programadas</div>
+598: [8]                                         )}
+599: [8]                                         {recordings.length === 0 && (request.recordingStartDate || request.recordingDate) && (
+600: [9]                                             <div className="p-4 border rounded-xl border-dashed bg-orange-50/50 border-orange-200">
+601: [9]                                                 <p className="text-[10px] font-bold text-orange-400 uppercase mb-2">Legacy (Rango)</p>
+602: [9]                                                 <p className="text-sm font-bold text-slate-700">Inicio: <span className="font-medium text-slate-600">{request.recordingStartDate || request.recordingDate} {request.recordingStartTime || request.recordingTime || ''}</span></p>
+603: [9]                                                 {request.recordingEndDate && <p className="text-sm font-bold text-slate-700 mt-1">Fin: <span className="font-medium text-slate-600">{request.recordingEndDate} {request.recordingEndTime || ''}</span></p>}
+604: [8]                                             </div>
+605: [8]                                         )}
+606: [8]                                         {recordings.map((rec, i) => (
+607: [9]                                             <div key={i} className={`p-4 border rounded-2xl relative transition-all ${canEdit ? 'bg-white border-blue-200 hover:border-blue-300 shadow-sm' : 'bg-slate-50 border-slate-100'}`}>
+608: [9]                                                 {canEdit && <button onClick={() => { const r = recordings.filter((_, idx) => idx !== i); setRecordings(r); updateRecordingsDB(r); }} className="absolute -top-2 -right-2 bg-white text-slate-300 hover:text-red-500 shadow-md border border-slate-100 rounded-full p-1.5 transition-colors"><X size={14} /></button>}
+609: [9]                                                 {canEdit ? (
+610: [10]                                                     <div className="flex flex-col gap-3">
+611: [11]                                                         <div>
+612: [11]                                                             <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Fecha</span>
+613: [11]                                                             <input type="date" value={rec.date} onChange={e => { const r = [...recordings]; r[i].date = e.target.value; setRecordings(r); }} onBlur={() => updateRecordingsDB(recordings)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:border-blue-300 outline-none font-bold text-slate-700" />
+614: [10]                                                         </div>
+615: [11]                                                         <div className="grid grid-cols-2 gap-3">
+616: [12]                                                             <div>
+617: [12]                                                                 <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Inicio</span>
+618: [12]                                                                 <input type="time" value={rec.startTime} onChange={e => { const r = [...recordings]; r[i].startTime = e.target.value; setRecordings(r); }} onBlur={() => updateRecordingsDB(recordings)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:border-blue-300 outline-none font-bold text-slate-700" />
+619: [11]                                                             </div>
+620: [12]                                                             <div>
+621: [12]                                                                 <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Fin</span>
+622: [12]                                                                 <input type="time" value={rec.endTime} onChange={e => { const r = [...recordings]; r[i].endTime = e.target.value; setRecordings(r); }} onBlur={() => updateRecordingsDB(recordings)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white focus:border-blue-300 outline-none font-bold text-slate-700" />
+623: [11]                                                             </div>
+624: [10]                                                         </div>
+625: [9]                                                     </div>
+626: [9]                                                 ) : (
+627: [10]                                                     <div className="flex flex-col gap-1.5">
+628: [10]                                                         <span className="text-sm font-bold text-slate-800 flex items-center gap-2"><Calendar size={14} className="text-blue-500"/> {rec.date || 'Sin fecha'}</span>
+629: [10]                                                         {(rec.startTime || rec.endTime) && (
+630: [10]                                                             <span className="text-xs text-slate-500 font-medium flex items-center gap-2 bg-slate-100 rounded-lg px-2 py-1 w-fit">
+631: [10]                                                                 <Clock size={12} className="text-slate-400" /> {rec.startTime || '?'} {rec.endTime ? `- ${rec.endTime}` : ''}
+632: [10]                                                             </span>
+633: [10]                                                         )}
+634: [9]                                                     </div>
+635: [9]                                                 )}
+636: [8]                                             </div>
+637: [8]                                         ))}
+638: [7]                                     </div>
+639: [6]                                 </div>
+640: [5]                             </div>
+641: [4]                         </div>
+642: [4] 
+643: [4]                         {/* Detalles y Contexto */}
+644: [5]                         <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-200 mb-6 lg:mb-0">
+645: [5]                             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><FileText size={14} /> Detalles Técnicos</h2>
+646: [6]                             <div className="space-y-4">
+647: [7]                                 <div>
+648: [7]                                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Objetivo Principal</span>
+649: [7]                                     <p className="text-sm text-slate-800 font-medium bg-slate-50 p-4 rounded-2xl border border-slate-100">{request.objetivo || "No especificado"}</p>
+650: [6]                                 </div>
+651: [7]                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+652: [8]                                     <div>
+653: [8]                                         <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Público</span>
+654: [8]                                         <p className="text-sm text-slate-800 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{request.publico || "-"}</p>
+655: [7]                                     </div>
+656: [8]                                     <div>
+657: [8]                                         <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Formato</span>
+658: [8]                                         {canEdit ? (
+659: [8]                                             <select value={request.format || ""} onChange={(e) => updateField('format', e.target.value)} className="text-sm font-medium border shadow-sm border-slate-200 rounded-xl px-3 py-3 bg-white outline-none focus:ring-2 focus:ring-blue-200 w-full hover:bg-slate-50 transition-colors">
+660: [8]                                                 <option value="Horizontal (16:9)">Horizontal (16:9)</option>
+661: [8]                                                 <option value="Vertical (9:16)">Vertical (9:16)</option>
+662: [8]                                                 <option value="Cuadrado (1:1)">Cuadrado (1:1)</option>
+663: [8]                                             </select>
+664: [8]                                         ) : (
+665: [8]                                             <p className="text-sm text-slate-800 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{request.format || "-"}</p>
+666: [8]                                         )}
+667: [7]                                     </div>
+668: [6]                                 </div>
+669: [7]                                 <div>
+670: [7]                                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Briefing (Requerimiento)</span>
+671: [7]                                     <div className="bg-blue-50/50 p-4 rounded-2xl text-sm text-blue-900 border border-blue-100 leading-relaxed font-medium whitespace-pre-wrap">{request.briefing || "Sin detalles"}</div>
+672: [6]                                 </div>
+673: [6]                                 {request.copy && (
+674: [7]                                     <div>
+675: [7]                                         <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Copy Propuesto</span>
+676: [7]                                         <div className="bg-white p-4 rounded-2xl text-sm italic border border-slate-200 shadow-sm text-slate-600 font-medium">{request.copy}</div>
+677: [6]                                     </div>
+678: [6]                                 )}
+679: [5]                             </div>
+680: [4]                         </div>
+681: [4] 
+682: [3]                     </div>
+683: [3] 
+684: [3]                         {/* RIGHT COLUMN */}
+685: [4]                         <div className="lg:col-span-7 flex flex-col gap-6">
+686: [4]                             
+687: [4]                             {/* Plan de Producción */}
+688: [5]                             <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1">
+689: [6]                                 <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+690: [6]                                     <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+691: [6]                                         <CheckCircle size={14} /> Plan de Producción
+692: [6]                                     </h2>
+693: [7]                                     <div className="flex items-center gap-2 w-full sm:w-auto">
+694: [7]                                         {canModifyPlan && (
+695: [7]                                             <button onClick={handleSaveVersion} className="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg shadow-sm border border-blue-100 flex items-center gap-1.5 font-bold transition-all active:scale-95">
+696: [7]                                                 <Save size={12} /> Guardar Versión
+697: [7]                                             </button>
+698: [7]                                         )}
+699: [7]                                         <span className="text-[10px] bg-slate-100 px-3 py-1.5 rounded-lg shadow-inner font-bold text-slate-600 min-w-[50px] text-center shrink-0 border border-slate-200">
+700: [7]                                             {checklist.filter(t => t.completed).length} / {checklist.length}
+701: [7]                                         </span>
+702: [6]                                     </div>
+703: [5]                                 </div>
+704: [5]                                 
+705: [6]                                 <div className="p-5 flex-1 flex flex-col justify-start">
+706: [6]                                     {canModifyPlan && !isFinalApproved && (
+707: [7]                                         <div className="flex gap-2 mb-5">
+708: [7]                                             <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTask()} spellCheck={true} lang="es-PE" placeholder="Escribe una nueva tarea..." className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-100 bg-slate-50 focus:bg-white transition-all font-medium text-slate-700 shadow-sm" />
+709: [7]                                             <button onClick={addTask} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 font-bold active:scale-95 transition-all shadow-md"><Plus size={18} /></button>
+710: [6]                                         </div>
+711: [6]                                     )}
+712: [6] 
+713: [7]                                     <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar flex-1 relative min-h-[150px]">
+714: [7]                                         {checklist.length === 0 && (
+715: [8]                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3">
+716: [8]                                                 <CheckCircle size={32} className="opacity-20" />
+717: [8]                                                 <p className="text-sm font-medium">Aún no hay tareas en el plan.</p>
+718: [7]                                             </div>
+719: [7]                                         )}
+720: [7]                                         {checklist.map((t, i) => (
+721: [8]                                             <div
+722: [8]                                                 key={i}
+723: [8]                                                 draggable={canModifyPlan}
+724: [8]                                                 onDragStart={(e) => handleDragStart(e, i)}
+725: [8]                                                 onDragEnter={(e) => handleDragEnter(e, i)}
+726: [8]                                                 onDragEnd={handleDragEnd}
+727: [8]                                                 onDragOver={(e) => e.preventDefault()}
+728: [8]                                                 className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 border rounded-2xl transition-all duration-300 group ${t.completed ? 'bg-slate-50 border-slate-100 opacity-80' : 'bg-white border-slate-200 shadow-sm'} ${draggedItemIndex === i ? 'opacity-40 border-dashed border-blue-400 bg-blue-50 scale-[0.98]' : 'hover:border-blue-300 hover:shadow-md'}`}
+729: [8]                                             >
+730: [9]                                                 <div className="flex items-start gap-3 flex-1 w-full min-w-0">
+731: [9]                                                     {canModifyPlan && !isFinalApproved && (
+732: [9]                                                         <div className="mt-2 text-slate-300 hover:text-indigo-400 cursor-grab active:cursor-grabbing transition-colors"><GripVertical size={16} /></div>
+733: [9]                                                     )}
+734: [9]                                                     <button onClick={() => (canModifyPlan || canLockPlan || canApprove) && toggleTask(i)} className={`w-6 h-6 rounded-lg border flex items-center justify-center flex-shrink-0 mt-1 transition-all ${t.completed ? 'bg-green-500 border-green-500 text-white shadow-inner' : 'border-slate-300 bg-slate-50 hover:bg-white hover:border-slate-400'} ${(canModifyPlan || canLockPlan || canApprove) ? 'cursor-pointer' : 'cursor-not-allowed'}`}>{t.completed && <CheckCircle size={14} />}</button>
+735: [10]                                                     <div className="flex-1 min-w-0">
+736: [10]                                                         {canModifyPlan ? (
+737: [10]                                                             <AutoResizeTextarea value={t.text} onChange={(e) => updateTaskText(i, e.target.value)} onBlur={saveTaskText} disabled={false} isCompleted={t.completed} />
+738: [10]                                                         ) : <span className={`text-sm break-words whitespace-normal block font-medium mt-1 ${t.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{t.text}</span>}
+739: [9]                                                     </div>
+740: [8]                                                 </div>
+741: [9]                                                 <div className="flex items-center justify-end gap-2 w-full sm:w-auto pl-10 sm:pl-0 shrink-0">
+742: [9]                                                     <select disabled={!canModifyPlan} value={t.type} onChange={(e) => changeTaskType(i, e.target.value)} className="text-[11px] font-bold tracking-wide border rounded-lg px-2.5 py-1.5 bg-slate-50 outline-none w-full sm:w-[130px] disabled:opacity-50 h-[34px] shadow-sm uppercase"><option>Solo Video</option><option>Voz en Off</option><option>Escena Compuesta</option><option>Imagen</option><option>Diseño</option><option>Foto</option></select>
+743: [9]                                                     {canModifyPlan && !isFinalApproved && <button onClick={() => deleteTask(i)} className="text-slate-300 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-red-50"><Trash2 size={16} /></button>}
+744: [8]                                                 </div>
+745: [7]                                             </div>
+746: [7]                                         ))}
+747: [6]                                     </div>
+748: [6]                                     {canLockPlan && (
+749: [7]                                         <div className="mt-5 pt-5 border-t border-slate-100">
+750: [7]                                             <button onClick={togglePlanLock} className={`w-full py-3.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-all active:scale-[0.98] shadow-sm ${isPlanApproved ? 'bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200' : 'bg-red-500 text-white hover:bg-red-600 shadow-md border border-red-600'}`}>
+751: [7]                                                 {isPlanApproved ? <><Edit2 size={18} /> Desbloquear Plan</> : <><Lock size={18} /> Bloquear Plan de Producción</>}
+752: [7]                                             </button>
+753: [7]                                             {isPlanApproved && request.planApprovedBy && <p className="text-[10px] text-center text-slate-400 mt-3 uppercase tracking-widest font-bold">Bloqueado por: <span className="text-slate-600">{request.planApprovedBy}</span></p>}
+754: [6]                                         </div>
+755: [6]                                     )}
+756: [5]                                 </div>
+757: [4]                             </div>
+758: [4] 
+759: [4]                             {/* Entregable Final & Aprobaciones */}
+760: [5]                             <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 overflow-hidden shrink-0">
+761: [6]                                 <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+762: [6]                                     <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+763: [6]                                         <LinkIcon size={14} /> Entregable Final
+764: [6]                                     </h2>
+765: [5]                                 </div>
+766: [6]                                 <div className="p-5">
+767: [6]                                     {!isEditingLink && (request.finalLink || request.link) ? (
+768: [7]                                         <div className="flex items-start sm:items-center flex-col sm:flex-row p-4 bg-emerald-50 border border-emerald-200 shadow-sm rounded-xl gap-3 overflow-hidden transition-all hover:shadow-md group">
+769: [8]                                             <div className="flex items-center gap-3 flex-1 w-full min-w-0">
+770: [8]                                                 <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600 group-hover:scale-110 transition-transform"><ExternalLink size={20} /></div>
+771: [8]                                                 <a href={ensureUrl(request.finalLink || request.link)} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm font-bold text-emerald-800 hover:underline truncate underline-offset-4">Ver Entregable Final</a>
+772: [7]                                             </div>
+773: [7]                                             {canEdit && <button onClick={() => setIsEditingLink(true)} className="text-xs font-bold text-emerald-700 bg-white shadow-sm border border-emerald-100 px-4 py-2 w-full sm:w-auto text-center rounded-lg hover:bg-emerald-100 active:scale-95 transition-all mt-2 sm:mt-0">Editar Link</button>}
+774: [6]                                         </div>
+775: [6]                                     ) : (
+776: [7]                                         <div className="flex flex-col sm:flex-row gap-3">
+777: [7]                                             {canEdit ? (
+778: [7]                                                 <>
+779: [7]                                                     <input value={linkInput} onChange={e => setLinkInput(e.target.value)} placeholder="Ej: https://drive.google.com/..." className="flex-1 border shadow-inner border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 min-w-0 transition-all text-slate-700 font-medium" />
+780: [7]                                                     <button onClick={saveLink} className="bg-slate-900 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 active:scale-95 transition-all whitespace-nowrap"><Save size={16} className="inline mr-1" /> Guardar</button>
+781: [7]                                                 </>
+782: [7]                                             ) : (
+783: [8]                                                 <div className="p-5 bg-slate-50 flex items-center justify-center gap-2 rounded-xl text-sm font-medium text-slate-400 w-full text-center border-2 border-dashed border-slate-200">
+784: [8]                                                     <Clock size={16} /> Esperando carga de entregable...
+785: [7]                                                 </div>
+786: [7]                                             )}
+787: [6]                                         </div>
+788: [6]                                     )}
+789: [6] 
+790: [6]                                     { /* Multi-User Approvals Section */}
+791: [6]                                     {(request.finalLink || request.link) && (
+792: [7]                                         <div className="mt-5 space-y-4 pt-5 border-t border-slate-100">
+793: [7]                                             {request.deliverableApprovals && request.deliverableApprovals.length > 0 && (
+794: [8]                                                 <div>
+795: [8]                                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">Aprobaciones Recibidas ({request.deliverableApprovals.length})</span>
+796: [9]                                                     <div className="flex flex-wrap gap-2">
+797: [9]                                                         {request.deliverableApprovals.map((ap, idx) => (
+798: [9]                                                             <span key={idx} className="bg-white text-emerald-700 text-xs px-3 py-2 rounded-xl shadow-sm border border-emerald-100 flex items-center gap-2 font-bold transform hover:-translate-y-0.5 transition-transform" title={ap.date}>
+799: [9]                                                                 <div className="bg-emerald-100 rounded-full p-0.5"><CheckCircle size={12} /></div> {ap.name} <span className="text-[10px] font-medium opacity-60 px-1 border-l border-emerald-200">{ap.role}</span>
+800: [9]                                                             </span>
+801: [9]                                                         ))}
+802: [8]                                                     </div>
+803: [7]                                                 </div>
+804: [7]                                             )}
+805: [7] 
+806: [7]                                             {canApproveDeliverable && !hasUserApprovedDeliverable && !isFinalApproved && (
+807: [7]                                                 <button
+808: [7]                                                     onClick={handleApproveDeliverable}
+809: [7]                                                     className="w-full py-4 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 flex justify-center items-center gap-2 active:scale-95 transition-all"
+810: [7]                                                 >
+811: [7]                                                     <CheckCircle size={18} /> Aprobar este Entregable
+812: [7]                                                 </button>
+813: [7]                                             )}
+814: [7]                                             {hasUserApprovedDeliverable && !isFinalApproved && (
+815: [8]                                                 <div className="flex items-center justify-center gap-2 text-xs text-emerald-700 font-bold p-3 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm">
+816: [8]                                                     <CheckCircle size={14} className="text-emerald-500" /> ¡Has aprobado este entregable!
+817: [7]                                                 </div>
+818: [7]                                             )}
+819: [6]                                         </div>
+820: [6]                                     )}
+821: [5]                                 </div>
+822: [4]                             </div>
+823: [3]                         </div>
+824: [2]                     </div>
+825: [1]                 </div>
+826: [1] 
+827: [1]             {/* Footer Sticky Bottom Actions */}
+828: [2]             <div className="fixed bottom-0 left-0 right-0 z-40 md:relative md:bottom-auto md:z-auto pointer-events-none">
+829: [3]                 <div className="pointer-events-auto bg-white/90 backdrop-blur-md md:bg-white border-t border-slate-200 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] md:shadow-none transition-all p-4 md:px-8 md:py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+830: [4]                     <div className="w-full md:w-auto self-start md:self-auto flex items-center gap-3">
+831: [4]                         {canEdit && (
+832: [4]                             <button
+833: [4]                                 onClick={request.archived ? handleUnarchive : handleArchive}
+834: [4]                                 className={`flex items-center justify-center md:justify-start gap-2 w-full md:w-auto px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 ${request.archived ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100' : 'bg-white border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50'}`}
+835: [4]                             >
+836: [4]                                 {request.archived ? <><RefreshCcw size={16} /> Desarchivar Orden</> : <><Archive size={16} /> Archivar Orden</>}
+837: [4]                             </button>
+838: [4]                         )}
+839: [3]                     </div>
+840: [3]                     
+841: [4]                     <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+842: [5]                         <div className="relative w-full md:w-auto">
+843: [5]                             <button onClick={() => setShowExportMenu(!showExportMenu)} className="w-full md:w-auto flex items-center justify-center gap-2 bg-white text-slate-700 hover:bg-slate-50 px-5 py-3 rounded-xl border border-slate-200 shadow-sm transition-all text-sm font-bold active:scale-95">
+844: [5]                                 <FileDown size={16} /> <span className="hidden sm:inline">Exportar Ficha</span> PDF
+845: [5]                             </button>
+846: [5]                             {showExportMenu && (
+847: [6]                                 <div className="absolute bottom-full right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 mb-3 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 transform origin-bottom animate-in fade-in slide-in-from-bottom-2">
+848: [7]                                     <div className="bg-slate-50/80 backdrop-blur-sm px-5 py-3 border-b border-slate-100">
+849: [7]                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descargar Versión PDF</p>
+850: [6]                                     </div>
+851: [7]                                     <div className="max-h-60 overflow-y-auto w-full">
+852: [7]                                         <button onClick={() => handlePDF(null, "Actual")} className="w-full text-left px-5 py-3.5 hover:bg-blue-50 flex items-center gap-3 transition-colors border-b border-slate-50 group">
+853: [7]                                             <div className="bg-blue-100 text-blue-600 p-2 rounded-xl group-hover:scale-110 transition-transform"><Edit2 size={14} /></div>
+854: [8]                                             <div>
+855: [8]                                                 <p className="text-sm font-bold text-slate-800">Versión Actual</p>
+856: [8]                                                 <p className="text-xs text-slate-500 font-medium tracking-tight mt-0.5">Estado actual en pantalla</p>
+857: [7]                                             </div>
+858: [7]                                         </button>
+859: [7]                                         {request.planVersions && request.planVersions.map((v, idx) => (
+860: [8]                                             <div key={v.version} className="relative group/v border-b border-slate-50 last:border-none">
+861: [8]                                                 <button
+862: [8]                                                     onClick={() => handlePDF(v.checklist, v.label)}
+863: [8]                                                     className="w-full text-left px-5 py-3.5 hover:bg-slate-50 flex items-center gap-3 transition-colors pr-12"
+864: [8]                                                 >
+865: [8]                                                     <div className="bg-slate-100 text-slate-500 p-2 rounded-xl"><History size={14} /></div>
+866: [9]                                                     <div>
+867: [9]                                                         <p className="text-sm font-bold text-slate-700">{v.label}</p>
+868: [9]                                                         <p className="text-[10px] text-slate-400 font-medium tracking-wide mt-0.5">Por: {v.savedBy} <span className="opacity-50 mx-1">|</span> {new Date(v.date).toLocaleDateString()}</p>
+869: [8]                                                     </div>
+870: [8]                                                 </button>
+871: [8]                                                 {canEdit && (
+872: [8]                                                     <button
+873: [8]                                                         onClick={(e) => handleDeleteVersion(e, idx)}
+874: [8]                                                         className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-white text-slate-400 hover:text-red-500 rounded-lg shadow-sm border border-slate-100 sm:opacity-0 group-hover/v:opacity-100 transition-all hover:bg-red-50"
+875: [8]                                                         title="Eliminar versión"
+876: [8]                                                     >
+877: [8]                                                         <Trash2 size={14} />
+878: [8]                                                     </button>
+879: [8]                                                 )}
+880: [7]                                             </div>
+881: [7]                                         ))}
+882: [7]                                         {(!request.planVersions || request.planVersions.length === 0) && (
+883: [7]                                             <div className="px-5 py-4 text-xs font-medium text-slate-400 text-center italic">No hay versiones guardadas</div>
+884: [7]                                         )}
+885: [6]                                     </div>
+886: [6]                                     <button onClick={() => setShowExportMenu(false)} className="w-full py-3 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors uppercase tracking-widest border-t border-slate-100">Cancelar</button>
+887: [5]                                 </div>
+888: [5]                             )}
+889: [4]                         </div>
+890: [4] 
+891: [4]                         {isFinalApproved && (request.deliverableApprovals?.length > 0 || isFinalApproved) && (
+892: [5]                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+893: [5]                                 <button
+894: [5]                                     onClick={() => setIsReopenModalOpen(true)}
+895: [5]                                     className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20 transition-all active:scale-95"
+896: [5]                                 >
+897: [5]                                     <RotateCcw size={16} /> Reabrir Solicitud
+898: [5]                                 </button>
+899: [6]                                 <div className="flex flex-col items-center justify-center bg-green-50 px-4 py-2.5 rounded-xl border border-green-200 outline-none w-full md:w-auto cursor-default">
+900: [6]                                     <span className="flex items-center gap-1.5 text-sm font-bold text-green-700"><CheckCircle size={16} className="text-green-500" /> Solicitud Cerrada</span>
+901: [6]                                     {request.finalApprovedBy && <span className="text-[10px] text-green-600/70 uppercase font-bold tracking-widest mt-0.5">Por: {request.finalApprovedBy}</span>}
+902: [5]                                 </div>
+903: [4]                             </div>
+904: [4]                         )}
+905: [4]                         {!isFinalApproved && canCloseRequest && (request.deliverableApprovals?.length > 0) && (
+906: [4]                             <button
+907: [4]                                 onClick={handleCloseRequest}
+908: [4]                                 className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 transition-all active:scale-95 whitespace-nowrap"
+909: [4]                             >
+910: [4]                                 <Lock size={16} /> Cerrar Solicitud
+911: [4]                             </button>
+912: [4]                         )}
+913: [3]                     </div>
+914: [2]                     </div>
+915: [1]                 </div>
+916: [0]             </div>
+=== DEPTH DROPPED BELOW 1 ===
+917: [0]             <Modal
+=== DEPTH DROPPED BELOW 1 ===
+918: [0]                 isOpen={isReopenModalOpen}
+=== DEPTH DROPPED BELOW 1 ===
+919: [0]                 onClose={() => setIsReopenModalOpen(false)}
+=== DEPTH DROPPED BELOW 1 ===
+920: [0]                 title="Reabrir Solicitud"
+=== DEPTH DROPPED BELOW 1 ===
+921: [0]             >
+=== DEPTH DROPPED BELOW 1 ===
+922: [1]                 <div className="space-y-4">
+923: [1]                     <p className="text-sm text-gray-600 font-medium">
+924: [1]                         ¿Estás seguro que quieres reabrir la solicitud? Se creará una copia clonada con la fecha actual.
+925: [1]                     </p>
+926: [2]                     <div>
+927: [2]                         <label className="text-xs font-bold text-gray-700 block mb-1 uppercase tracking-wide">Motivo de Reapertura</label>
+928: [2]                         <textarea
+929: [2]                             value={reopenReason}
+930: [2]                             onChange={(e) => setReopenReason(e.target.value)}
+931: [2]                             placeholder="Ej. Se requiere una nueva versión para la campaña de verano..."
+932: [2]                             className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-amber-500 text-gray-800 text-sm h-32 resize-none"
+933: [2]                             spellCheck={true}
+934: [2]                             lang="es-PE"
+935: [2]                         />
+936: [1]                     </div>
+937: [2]                     <div className="flex justify-end gap-3 pt-4 border-t">
+938: [2]                         <button
+939: [2]                             onClick={() => setIsReopenModalOpen(false)}
+940: [2]                             className="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-100 transition-all font-medium"
+941: [2]                         >
+942: [2]                             Cancelar
+943: [2]                         </button>
+944: [2]                         <button
+945: [2]                             onClick={handleReopenRequest}
+946: [2]                             disabled={!reopenReason.trim() || isReopening}
+947: [2]                             className={`px-8 py-2.5 rounded-lg text-sm font-bold text-white shadow-lg transition-all active:scale-95 flex items-center gap-2 ${reopenReason.trim() ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-300 cursor-not-allowed'}`}
+948: [2]                         >
+949: [2]                             {isReopening ? 'Guardando...' : 'Confirmar Reapertura'}
+950: [2]                         </button>
+951: [1]                     </div>
+952: [0]                 </div>
+=== DEPTH DROPPED BELOW 1 ===
+953: [0]             </Modal>
+=== DEPTH DROPPED BELOW 1 ===
+954: [-1]         </div>
+=== DEPTH DROPPED BELOW 1 ===
+955: [-1]     );
+=== DEPTH DROPPED BELOW 1 ===
+956: [-1] };
+=== DEPTH DROPPED BELOW 1 ===
+957: [-1] export default RequestDetailPage;
+=== DEPTH DROPPED BELOW 1 ===
+958: [-1] 
+=== DEPTH DROPPED BELOW 1 ===
