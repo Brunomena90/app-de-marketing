@@ -5,6 +5,10 @@ import electron from 'vite-plugin-electron'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    port: 5174,
+    strictPort: true
+  },
   base: './',
   plugins: [
     react(),
@@ -21,32 +25,31 @@ export default defineConfig({
     ]),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
+        id: "/",
+        start_url: "/",
+        scope: "/",
         name: "Artories Management Suite",
         short_name: "Artories",
         description: "Suite administrativa para gestión de proyectos y recursos",
-        theme_color: "#0ea5e9",
-        background_color: "#ffffff",
+        theme_color: "#050505",
+        background_color: "#050505",
         display: "standalone",
+        orientation: "any",
         icons: [
-          {
-            src: "favicon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "any"
-          },
-          {
-            src: "favicon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "maskable"
-          },
           {
             src: "pwa-192x192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any"
+          },
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable"
           },
           {
             src: "pwa-512x512.png",

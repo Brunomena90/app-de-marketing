@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Building2, Search, Trash2, Edit2, Layers,
     ChevronDown, ChevronUp, Check, Power, PowerOff,
-    LayoutGrid, Megaphone, TrendingUp, Sparkles, Lock, Unlock, Palette, Wallet
+    LayoutGrid, Megaphone, TrendingUp, Sparkles, Lock, Unlock, Palette, Wallet,
+    Package, Image, GitMerge
 } from 'lucide-react';
 
 /* ─── Catálogo de módulos disponibles ─────────────────────── */
@@ -13,6 +14,9 @@ const ALL_MODULES = [
     { id: 'branding',    label: 'Marca & Estrategia',icon: <Palette size={15} />,    color: 'text-pink-600 bg-pink-50 border-pink-200' },
     { id: 'finanzas',    label: 'Gestión Financiera',icon: <Wallet size={15} />,     color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
     { id: 'empresas',    label: 'Gestión Empresas',  icon: <Building2 size={15} />,  color: 'text-violet-600 bg-violet-50 border-violet-200' },
+    { id: 'almacenes',   label: 'Módulo de Almacenes',icon: <Package size={15} />,   color: 'text-amber-600 bg-amber-50 border-amber-200' },
+    { id: 'media-suite', label: 'Media Suite',       icon: <Image size={15} />,      color: 'text-rose-600 bg-rose-50 border-rose-200' },
+    { id: 'procesos',    label: 'Gestión de Procesos',icon: <GitMerge size={15} />,  color: 'text-cyan-600 bg-cyan-50 border-cyan-200' },
 ];
 import {
     deleteDoc, doc, where, updateDoc,
@@ -302,10 +306,10 @@ const Empresas = () => {
 
                                 {/* ── Panel de MÓDULOS ── */}
                                 {isModulosOpen && (
-                                    <div className="border-t border-gray-100 bg-violet-50/40 px-4 py-4">
+                                    <div className="border-t border-zinc-800/50 bg-zinc-950/50 px-4 py-4">
                                         <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-xs font-bold text-violet-700 uppercase tracking-wider flex items-center gap-1.5">
-                                                <LayoutGrid size={12} /> Módulos — <span className="truncate max-w-[120px] sm:max-w-none">{empresa.name}</span>
+                                            <h3 className="text-xs font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
+                                                <LayoutGrid size={12} /> Módulos — <span className="truncate max-w-[120px] sm:max-w-none text-zinc-300">{empresa.name}</span>
                                             </h3>
                                             <span className="text-[10px] text-violet-400 font-medium">
                                                 {enabledMods.length}/{iAmSuper5 ? myAllowedModules.length : ALL_MODULES.length} habilitados
@@ -314,9 +318,9 @@ const Empresas = () => {
 
                                         {/* Aviso para Super Nv.5 */}
                                         {iAmSuper5 && (
-                                            <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
-                                                <Lock size={12} className="text-amber-500 shrink-0" />
-                                                <p className="text-[10px] text-amber-700 font-medium">
+                                            <div className="mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+                                                <Lock size={12} className="text-amber-400 shrink-0" />
+                                                <p className="text-[10px] text-amber-300 font-medium">
                                                     Solo puedes asignar los módulos que el Super Nv.1 te ha concedido ({myAllowedModules.length} disponibles).
                                                 </p>
                                             </div>
@@ -335,16 +339,16 @@ const Empresas = () => {
                                                         title={isRestricted ? 'Módulo no disponible en tu plan' : ''}
                                                         className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left group ${
                                                             isRestricted
-                                                                ? 'bg-gray-50 border-dashed border-gray-200 opacity-40 cursor-not-allowed'
+                                                                ? 'bg-zinc-900/40 border-dashed border-zinc-800 opacity-40 cursor-not-allowed'
                                                                 : isEnabled
-                                                                    ? 'bg-white border-violet-300 shadow-sm cursor-pointer'
-                                                                    : 'bg-white/60 border-dashed border-gray-200 hover:border-gray-300 cursor-pointer'
+                                                                    ? 'bg-zinc-900 border-violet-500/50 shadow-sm cursor-pointer'
+                                                                    : 'bg-zinc-900/60 border-dashed border-zinc-800 hover:border-violet-500/30 cursor-pointer'
                                                         }`}
                                                     >
                                                         {/* Icono del módulo */}
                                                         <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
-                                                            isRestricted ? 'bg-gray-100 border-gray-200 text-gray-300'
-                                                            : isEnabled ? mod.color : 'bg-gray-50 border-gray-200 text-gray-300'
+                                                            isRestricted ? 'bg-zinc-900 border-zinc-800 text-zinc-600'
+                                                            : isEnabled ? mod.color : 'bg-zinc-900 border-zinc-800 text-zinc-500'
                                                         }`}>
                                                             {isRestricted ? <Lock size={15} /> : mod.icon}
                                                         </div>
@@ -352,14 +356,14 @@ const Empresas = () => {
                                                         {/* Label */}
                                                         <div className="flex-1 min-w-0">
                                                             <p className={`text-sm font-bold truncate ${
-                                                                isRestricted ? 'text-gray-300' : isEnabled ? 'text-gray-800' : 'text-gray-400'
+                                                                isRestricted ? 'text-zinc-600' : isEnabled ? 'text-white' : 'text-zinc-400'
                                                             }`}>{mod.label}</p>
                                                             <p className="text-[10px] font-medium mt-0.5">
                                                                 {isRestricted
-                                                                    ? <span className="text-gray-300 flex items-center gap-1"><Lock size={9} /> No disponible</span>
+                                                                    ? <span className="text-zinc-600 flex items-center gap-1"><Lock size={9} /> No disponible</span>
                                                                     : isEnabled
-                                                                        ? <span className="text-violet-500 flex items-center gap-1"><Unlock size={9} /> Acceso habilitado</span>
-                                                                        : <span className="text-gray-400 flex items-center gap-1"><Lock size={9} /> Sin acceso</span>
+                                                                        ? <span className="text-violet-400 flex items-center gap-1"><Unlock size={9} /> Acceso habilitado</span>
+                                                                        : <span className="text-zinc-500 flex items-center gap-1"><Lock size={9} /> Sin acceso</span>
                                                                 }
                                                             </p>
                                                         </div>
@@ -367,7 +371,7 @@ const Empresas = () => {
                                                         {/* Toggle visual */}
                                                         {!isRestricted && (
                                                             <div className={`w-10 h-6 rounded-full flex items-center transition-all shrink-0 px-0.5 ${
-                                                                isEnabled ? 'bg-violet-500 justify-end' : 'bg-gray-200 justify-start'
+                                                                isEnabled ? 'bg-violet-500 justify-end' : 'bg-zinc-800 justify-start'
                                                             }`}>
                                                                 <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
                                                             </div>
@@ -384,14 +388,14 @@ const Empresas = () => {
 
                                 {/* ── Panel de ÁREAS ── */}
                                 {isAreasOpen && (
-                                    <div className="border-t border-gray-100 bg-gray-50/60 px-5 py-4">
+                                    <div className="border-t border-zinc-800/50 bg-zinc-950/50 px-5 py-4">
                                         <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                                            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
                                                 <Layers size={12} /> Áreas de {empresa.name}
                                             </h3>
                                             <button
                                                 onClick={() => setAreaModal({ open: true, item: null, empresaId: empresa.id, empresaName: empresa.name })}
-                                                className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-600 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                                                className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 hover:border-violet-500 hover:text-violet-400 text-zinc-300 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
                                             >
                                                 <Plus size={13} /> Nueva Área
                                             </button>
@@ -404,14 +408,14 @@ const Empresas = () => {
                                         ) : (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                                 {areasEmpresa.map(area => (
-                                                    <div key={area.id} className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-3 group hover:shadow-sm transition-all">
-                                                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                                                            <Layers size={14} className="text-blue-500" />
+                                                    <div key={area.id} className="bg-zinc-900/80 rounded-lg border border-zinc-800/80 hover:border-violet-500/50 px-4 py-3 flex items-center gap-3 group hover:shadow-sm transition-all">
+                                                        <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
+                                                            <Layers size={14} className="text-violet-400" />
                                                         </div>
-                                                        <span className="flex-1 text-sm font-semibold text-gray-700 uppercase truncate">{area.name}</span>
+                                                        <span className="flex-1 text-sm font-semibold text-zinc-100 uppercase truncate">{area.name}</span>
                                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={() => setAreaModal({ open: true, item: area, empresaId: empresa.id, empresaName: empresa.name })} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"><Edit2 size={13} /></button>
-                                                            <button onClick={() => setConfirmModal({ open: true, type: 'area', id: area.id, name: area.name, loading: false })} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"><Trash2 size={13} /></button>
+                                                            <button onClick={() => setAreaModal({ open: true, item: area, empresaId: empresa.id, empresaName: empresa.name })} className="p-1.5 text-zinc-500 hover:text-violet-400 hover:bg-violet-500/10 rounded-full transition-colors"><Edit2 size={13} /></button>
+                                                            <button onClick={() => setConfirmModal({ open: true, type: 'area', id: area.id, name: area.name, loading: false })} className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-colors"><Trash2 size={13} /></button>
                                                         </div>
                                                     </div>
                                                 ))}

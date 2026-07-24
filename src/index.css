@@ -55,7 +55,13 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply antialiased min-h-screen bg-background text-foreground;
+    font-family: 'Outfit', sans-serif;
+    /* iOS PWA Safe Areas */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
 
@@ -282,26 +288,29 @@
   stroke: #2a2a2a !important;
 }
 
-/* Custom Scrollbars for Dark Mode */
-.marketing-dark ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+/* Custom Scrollbars for Dark Mode (Global) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-.marketing-dark ::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: #111111;
-  border-left: 1px solid #222222;
-  border-top: 1px solid #222222;
 }
 
-.marketing-dark ::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #333333;
-  border-radius: 6px;
-  border: 3px solid #111111;
+  border-radius: 10px;
+  border: 2px solid #111111;
 }
 
-.marketing-dark ::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
   background: #555555;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #111111;
 }
 
 .marketing-dark {

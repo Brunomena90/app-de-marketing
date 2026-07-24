@@ -4,7 +4,8 @@ import {
     LayoutDashboard, FileText, Users, Megaphone, Calendar,
     LogOut, Book, ExternalLink, Building2, Home, Star, Sparkles, TrendingUp, Handshake, ShoppingCart, UserCheck, Heart, Wallet, TrendingDown,
     Palette, Type, Image, Layers, ChevronDown, ChevronUp, User, PanelRight, ListTodo, Package,
-    Moon, Sun, LayoutList
+
+    Moon, Sun, LayoutList, GitMerge
 } from 'lucide-react';
 
 
@@ -21,6 +22,7 @@ const FINANZAS_PATHS = ['/finanzas'];
 const WORKFLOW_PATHS = ['/workflow-ai'];
 const BRANDING_PATHS = ['/branding'];
 const ALMACENES_PATHS = ['/almacenes'];
+const PROCESOS_PATHS = ['/procesos'];
 
 const Sidebar = ({ onCloseMobile }) => {
     const { user, logout, activeEmpresa } = useAuth();
@@ -31,12 +33,29 @@ const Sidebar = ({ onCloseMobile }) => {
 
     const [marketingDark, setMarketingDark] = useState(() => localStorage.getItem('marketingDark') === 'true');
 
-    const toggleMarketingDark = () => {
+    const toggleMarketingDark = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         const newVal = !marketingDark;
         setMarketingDark(newVal);
-        localStorage.setItem('marketingDark', newVal);
+        localStorage.setItem('marketingDark', String(newVal));
         window.dispatchEvent(new CustomEvent('toggle-marketing-dark', { detail: newVal }));
     };
+
+    const renderSectionHeader = (title) => (
+        <div className="mb-2 px-4 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
+            <span>{title}</span>
+            <button 
+                onClick={toggleMarketingDark} 
+                className="hover:text-white transition-colors"
+                title={marketingDark ? "Modo Claro" : "Modo Oscuro"}
+            >
+                {marketingDark ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
+        </div>
+    );
     const role = user?.role ? user.role.toLowerCase().trim() : '';
     const isAdmin = role === 'admin' || isSuperUser(role);
     const isEditor = role === 'editor';
@@ -49,6 +68,7 @@ const Sidebar = ({ onCloseMobile }) => {
     const isWorkFlowModule = WORKFLOW_PATHS.some(p => location.pathname.startsWith(p));
     const isBrandingModule = BRANDING_PATHS.some(p => location.pathname.startsWith(p));
     const isAlmacenesModule = ALMACENES_PATHS.some(p => location.pathname.startsWith(p));
+    const isProcesosModule = PROCESOS_PATHS.some(p => location.pathname.startsWith(p));
     
     // Permisos
     const hasMarketingAccess = isSuperUser(role) || (user?.accessibleApps || []).includes('marketing');
@@ -58,6 +78,7 @@ const Sidebar = ({ onCloseMobile }) => {
     const hasWorkFlowAccess = isSuperUser(role) || (user?.accessibleApps || []).includes('workflow-ai');
     const hasBrandingAccess = isSuperUser(role) || (user?.accessibleApps || []).includes('branding');
     const hasAlmacenesAccess = isSuperUser(role) || (user?.accessibleApps || []).includes('almacenes');
+    const hasProcesosAccess = isSuperUser(role) || (user?.accessibleApps || []).includes('procesos');
 
     const handleLogout = () => {
         logout();
@@ -86,10 +107,10 @@ const Sidebar = ({ onCloseMobile }) => {
                 <AppIcon className="w-10 h-10 shrink-0" variant="white" />
                 <div>
                     <h1 className="text-lg font-bold tracking-wider text-white leading-tight uppercase">
-                        {isEmpresasModule ? 'Gestión' : isMarketingModule ? 'Marketing' : isVentasModule ? 'Ventas' : isFinanzasModule ? 'Finanzas' : isWorkFlowModule ? 'Artories IA' : isBrandingModule ? 'Marca' : isAlmacenesModule ? 'Almacenes' : 'Artories'}
+                        {isEmpresasModule ? 'Gestión' : isMarketingModule ? 'Marketing' : isVentasModule ? 'Ventas' : isFinanzasModule ? 'Finanzas' : isWorkFlowModule ? 'Artories IA' : isBrandingModule ? 'Marca' : isAlmacenesModule ? 'Almacenes' : isProcesosModule ? 'Procesos' : 'Artories'}
                     </h1>
                     <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-widest font-bold">
-                        {isEmpresasModule ? 'Empresas & Usuarios' : isMarketingModule ? 'Contenido & SEO' : isVentasModule ? 'Comercial & Negocios' : isFinanzasModule ? 'Gestión Financiera' : isWorkFlowModule ? 'Asistente de Inteligencia' : isBrandingModule ? 'Estrategia & Gestión de Marca' : isAlmacenesModule ? 'Inventario & Logística' : 'Management Suite'}
+                        {isEmpresasModule ? 'Empresas & Usuarios' : isMarketingModule ? 'Contenido & SEO' : isVentasModule ? 'Comercial & Negocios' : isFinanzasModule ? 'Gestión Financiera' : isWorkFlowModule ? 'Asistente de Inteligencia' : isBrandingModule ? 'Estrategia & Gestión de Marca' : isAlmacenesModule ? 'Inventario & Logística' : isProcesosModule ? 'Gestión Operativa' : 'Management Suite'}
                     </p>
                 </div>
                 {isSuper1 && (
@@ -113,16 +134,7 @@ const Sidebar = ({ onCloseMobile }) => {
             {/* MÓDULO MARKETING */}
             {hasMarketingAccess && isMarketingModule && (
                 <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-                    <div className="mb-2 px-4 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
-                        <span>{"MARKETING SUITE"}</span>
-                        <button 
-                            onClick={toggleMarketingDark} 
-                            className="hover:text-white transition-colors"
-                            title={marketingDark ? "Modo Claro" : "Modo Oscuro"}
-                        >
-                            {marketingDark ? <Sun size={14} /> : <Moon size={14} />}
-                        </button>
-                    </div>
+                    {renderSectionHeader("MARKETING SUITE")}
 
                     <NavLink to="/dashboard" className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
@@ -232,9 +244,7 @@ const Sidebar = ({ onCloseMobile }) => {
             {/* MÓDULO EMPRESAS */}
             {hasEmpresasAccess && isEmpresasModule && (
                 <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-                    <div className="mb-2 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
-                        GESTIÓN EMPRESARIAL
-                    </div>
+                    {renderSectionHeader("GESTIÓN EMPRESARIAL")}
 
                     <NavLink to="/empresas" className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
@@ -265,9 +275,7 @@ const Sidebar = ({ onCloseMobile }) => {
             {/* MÓDULO VENTAS */}
             {hasVentasAccess && isVentasModule && (
                 <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-                    <div className="mb-2 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
-                        GESTIÓN COMERCIAL
-                    </div>
+                    {renderSectionHeader("GESTIÓN COMERCIAL")}
 
                     <NavLink to="/ventas" end className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
@@ -275,51 +283,7 @@ const Sidebar = ({ onCloseMobile }) => {
                                 <div className={iconWrapperClass('bg-emerald-500/10 text-emerald-400', isActive)}>
                                     <LayoutDashboard size={18} />
                                 </div>
-                                <span>Panel de Control</span>
-                            </>
-                        )}
-                    </NavLink>
-
-                    <NavLink to="/ventas/crm" className={linkClass} onClick={onCloseMobile}>
-                        {({ isActive }) => (
-                            <>
-                                <div className={iconWrapperClass('bg-sky-500/10 text-sky-400', isActive)}>
-                                    <UserCheck size={18} />
-                                </div>
-                                <span>1. CRM & Pipeline</span>
-                            </>
-                        )}
-                    </NavLink>
-
-                    <NavLink to="/ventas/cotizaciones-emitidas" className={linkClass} onClick={onCloseMobile}>
-                        {({ isActive }) => (
-                            <>
-                                <div className={iconWrapperClass('bg-lime-500/10 text-lime-400', isActive)}>
-                                    <TrendingUp size={18} />
-                                </div>
-                                <span>2. Cotizaciones</span>
-                            </>
-                        )}
-                    </NavLink>
-
-                    <NavLink to="/ventas/ordenes-compra" className={linkClass} onClick={onCloseMobile}>
-                        {({ isActive }) => (
-                            <>
-                                <div className={iconWrapperClass('bg-cyan-500/10 text-cyan-400', isActive)}>
-                                    <ShoppingCart size={18} />
-                                </div>
-                                <span>3. Órdenes de Servicio</span>
-                            </>
-                        )}
-                    </NavLink>
-
-                    <NavLink to="/ventas/clientes-frecuentes" className={linkClass} onClick={onCloseMobile}>
-                        {({ isActive }) => (
-                            <>
-                                <div className={iconWrapperClass('bg-blue-500/10 text-blue-400', isActive)}>
-                                    <Users size={18} />
-                                </div>
-                                <span>4. Directorio de Clientes</span>
+                                <span>Panel de Control (Ventas)</span>
                             </>
                         )}
                     </NavLink>
@@ -329,9 +293,7 @@ const Sidebar = ({ onCloseMobile }) => {
             {/* MÓDULO FINANZAS */}
             {hasFinanzasAccess && isFinanzasModule && (
                 <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-                    <div className="mb-2 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
-                        GESTIÓN FINANCIERA
-                    </div>
+                    {renderSectionHeader("GESTIÓN FINANCIERA")}
 
                     <NavLink to="/finanzas" end className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
@@ -382,9 +344,7 @@ const Sidebar = ({ onCloseMobile }) => {
             {/* MÓDULO ARTORIES IA */}
             {hasWorkFlowAccess && isWorkFlowModule && (
                 <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-                    <div className="mb-2 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
-                        ARTORIES IA
-                    </div>
+                    {renderSectionHeader("ARTORIES IA")}
 
                     <NavLink to="/workflow-ai" end className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
@@ -403,9 +363,7 @@ const Sidebar = ({ onCloseMobile }) => {
             {hasBrandingAccess && isBrandingModule && activeEmpresa !== 'Todas' && (
 
                 <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-                    <div className="mb-4 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
-                        GESTIÓN DE MARCA
-                    </div>
+                    {renderSectionHeader("GESTIÓN DE MARCA")}
 
                     <NavLink to="/branding" end className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
@@ -512,15 +470,31 @@ const Sidebar = ({ onCloseMobile }) => {
             {/* MÓDULO ALMACENES */}
             {hasAlmacenesAccess && isAlmacenesModule && (
                 <nav className="p-4 space-y-2 overflow-y-auto flex-1">
-                    <div className="mb-2 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60">
-                        GESTIÓN DE INVENTARIO
-                    </div>
+                    {renderSectionHeader("GESTIÓN DE INVENTARIO")}
 
                     <NavLink to="/almacenes" end className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
                             <>
                                 <div className={iconWrapperClass('bg-amber-500/10 text-amber-400', isActive)}>
                                     <Package size={18} />
+                                </div>
+                                <span>Panel de Control</span>
+                            </>
+                        )}
+                    </NavLink>
+                </nav>
+            )}
+
+            {/* MÓDULO PROCESOS */}
+            {hasProcesosAccess && isProcesosModule && (
+                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                    {renderSectionHeader("GESTIÓN DE PROCESOS")}
+
+                    <NavLink to="/procesos" end className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-cyan-500/10 text-cyan-400', isActive)}>
+                                    <GitMerge size={18} />
                                 </div>
                                 <span>Panel de Control</span>
                             </>

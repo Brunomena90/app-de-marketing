@@ -11,7 +11,7 @@ import {
     ChevronDown, Search, Lock, Check, PowerOff,
     TrendingUp, BadgeDollarSign, ShoppingCart, UserCheck,
     Palette, Type, Image, Layers, User, Wallet, TrendingDown,
-    Rocket, Package, ArrowRightLeft, BarChart3, DownloadCloud, PanelRight
+    Rocket, Package, ArrowRightLeft, BarChart3, DownloadCloud, PanelRight, GitMerge, Settings2
 } from 'lucide-react';
 
 import AppIcon from '../components/AppIcon';
@@ -153,6 +153,43 @@ const MODULES = [
         badge: 'Inventario & Logística',
         badgeColor: 'bg-amber-500/20 text-amber-200',
     },
+    {
+        id: 'media-suite',
+        name: 'Media Suite',
+        label: 'Suite Multimedia Local',
+        description: 'Herramientas de edición locales: Foto, Diseño, Audio y Video.',
+        route: '/media-suite',
+        color: 'from-pink-600 to-rose-800',
+        shadowColor: 'shadow-pink-500/30',
+        ringColor: 'ring-pink-400/30',
+        bgGlow: 'bg-pink-500',
+        icon: <Image size={36} className="text-white" />,
+        features: [
+            { icon: <Image size={14} />, label: 'Foto' },
+            { icon: <Palette size={14} />, label: 'Diseño' },
+            { icon: <ExternalLink size={14} />, label: 'Media Hub' },
+        ],
+        badge: 'Local (Sin Base de Datos)',
+        badgeColor: 'bg-pink-500/20 text-pink-200',
+    },
+    {
+        id: 'procesos',
+        name: 'Procesos',
+        label: 'Gestión de Procesos',
+        description: 'Visualiza y analiza los procesos organizacionales con diagramas AS-IS y TO-BE.',
+        route: '/procesos',
+        color: 'from-cyan-600 to-blue-800',
+        shadowColor: 'shadow-cyan-500/30',
+        ringColor: 'ring-cyan-400/30',
+        bgGlow: 'bg-cyan-500',
+        icon: <GitMerge size={36} className="text-white" />,
+        features: [
+            { icon: <Settings2 size={14} />, label: 'Procesos' },
+            { icon: <GitMerge size={14} />, label: 'AS-IS / TO-BE' },
+        ],
+        badge: 'Gestión Operativa',
+        badgeColor: 'bg-cyan-500/20 text-cyan-200',
+    }
 ];
 
 /* ─── Componente Onboarding (Creación de Matriz) ───────────── */
@@ -672,7 +709,7 @@ const AppCenter = () => {
 
             {/* ── TARJETAS DE MÓDULOS ── */}
             <main className="relative z-10 flex-1 flex items-start justify-center px-6 pb-16">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-[90rem]">
                     {(() => {
                         const isSU = isSuperUser(user?.role);
                         const isGlobal = activeEmpresa === 'Todas';
@@ -686,6 +723,9 @@ const AppCenter = () => {
 
                         return MODULES
                             .filter(mod => {
+                                // Bypass local module
+                                if (mod.id === 'media-suite') return true;
+                                
                                 // Ocultar módulo de branding en Vista Global
                                 if (isGlobal && mod.id === 'branding') return false;
 

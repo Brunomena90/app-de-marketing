@@ -180,7 +180,7 @@ const OrdenesCompraVentas = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-4 backdrop-blur-md">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-900 border border-white/10 mb-4 shadow-md">
                             <Activity size={14} className="text-emerald-400" />
                             <span className="text-xs font-bold text-white/70 uppercase tracking-widest">Ejecución Comercial</span>
                         </div>
@@ -202,7 +202,7 @@ const OrdenesCompraVentas = () => {
                 <div className="flex flex-wrap gap-3">
                     <button
                         onClick={() => setStatusFilter('Todos')}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${statusFilter === 'Todos' ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white'}`}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${statusFilter === 'Todos' ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-gray-900 text-white/60 border-white/10 hover:bg-gray-800 hover:text-white'}`}
                     >
                         Todas ({visibleAll.length})
                     </button>
@@ -210,7 +210,7 @@ const OrdenesCompraVentas = () => {
                         <button
                             key={s.value}
                             onClick={() => setStatusFilter(s.value)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${statusFilter === s.value ? `${s.color} shadow-lg ring-1 ring-current` : `bg-white/5 text-white/60 border-white/10 ${s.hoverBg} hover:text-white`}`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${statusFilter === s.value ? `${s.color} shadow-lg ring-1 ring-current` : `bg-gray-900 text-white/60 border-white/10 hover:text-white`}`}
                         >
                             <span className={`w-1.5 h-1.5 rounded-full ${s.dot} shadow-[0_0_8px_currentColor]`} />
                             {s.label} {counts[s.value] > 0 && <span className="opacity-60 ml-1">({counts[s.value]})</span>}
@@ -227,7 +227,7 @@ const OrdenesCompraVentas = () => {
                             placeholder="Buscar por cliente, descripción o ref COT-..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-white placeholder-white/30 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white/[0.05] outline-none transition-all"
+                            className="w-full bg-gray-900 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-white placeholder-white/30 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-gray-950 outline-none transition-all"
                         />
                     </div>
                     <div className="bg-gradient-to-br from-amber-900/40 to-orange-900/20 border border-amber-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-amber-400 relative overflow-hidden">
@@ -241,7 +241,7 @@ const OrdenesCompraVentas = () => {
                 {loading ? (
                     <div className="p-20 text-center text-white/30 font-bold animate-pulse">Cargando órdenes...</div>
                 ) : filtered.length === 0 ? (
-                    <div className="bg-white/[0.02] rounded-[32px] border border-white/5 p-16 flex flex-col items-center justify-center text-center backdrop-blur-sm">
+                    <div className="bg-gray-900 rounded-[32px] border border-white/10 p-16 flex flex-col items-center justify-center text-center shadow-xl">
                         <div className="w-24 h-24 bg-white/5 rounded-[2rem] flex items-center justify-center mb-6 ring-1 ring-white/10 shadow-2xl">
                             <ShoppingCart size={40} className="text-white/20" />
                         </div>
@@ -260,7 +260,7 @@ const OrdenesCompraVentas = () => {
                             return (
                                 <div
                                     key={o.id}
-                                    className="group relative bg-white/[0.02] border border-white/10 rounded-[2rem] p-6 hover:bg-white/[0.04] hover:border-white/20 transition-all duration-500 flex flex-col overflow-hidden hover:shadow-2xl"
+                                    className="group relative bg-gray-900 border border-white/10 rounded-[2rem] p-6 hover:bg-gray-800/90 hover:border-white/20 transition-all duration-300 flex flex-col overflow-hidden shadow-xl [transform:translateZ(0)]"
                                 >
                                     {/* Acento superior de color */}
                                     <div className={`absolute top-0 left-0 right-0 h-1 ${cfg.dot} opacity-50 group-hover:opacity-100 transition-opacity`} />
@@ -270,7 +270,7 @@ const OrdenesCompraVentas = () => {
 
                                     {/* Acciones Hover */}
                                     <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-20">
-                                        <button onClick={() => handleDelete(o.id)} className="p-2.5 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 hover:text-red-300 transition-all backdrop-blur-md" title="Eliminar">
+                                        <button onClick={() => handleDelete(o.id)} className="p-2.5 bg-gray-800 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all border border-white/5" title="Eliminar">
                                             <Trash2 size={14} />
                                         </button>
                                     </div>

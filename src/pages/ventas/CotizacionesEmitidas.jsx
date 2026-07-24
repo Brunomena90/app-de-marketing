@@ -229,14 +229,16 @@ const CotizacionesEmitidas = () => {
 
                 {/* Buscador */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="md:col-span-3 relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-emerald-400 transition-colors" size={18} />
+                    <div className="md:col-span-3 relative group h-full">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Search className="text-white/30 group-focus-within:text-emerald-400 transition-colors" size={18} />
+                        </div>
                         <input
                             type="text"
                             placeholder="Buscar por cliente o responsable..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-white placeholder-white/30 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white/[0.05] outline-none transition-all"
+                            className="w-full h-full min-h-[64px] bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-white placeholder-white/30 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white/[0.05] outline-none transition-all"
                         />
                     </div>
                     <div className="bg-gradient-to-br from-emerald-900/40 to-teal-900/20 border border-emerald-500/20 rounded-2xl p-4 flex flex-col justify-center items-center text-emerald-400 relative overflow-hidden">

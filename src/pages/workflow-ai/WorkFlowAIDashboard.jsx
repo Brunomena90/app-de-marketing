@@ -7,7 +7,7 @@ import {
     Sparkles, Send, Bot, User, Trash2, Copy, Check, TrendingUp, FileText, Zap, Brain, Cpu, ChevronLeft, ChevronDown, History, PanelLeftClose, PanelLeft, Loader2, Plus, MessageSquare, FolderGit2, Settings, PlusCircle, Wand2, Edit3, Home, Download, Paperclip, X, File, HardDrive, DownloadCloud
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { sendSmartMessage, MODELS } from '../../services/geminiService';
+import { sendLlamaMessage } from '../../services/llamaService';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -189,7 +189,7 @@ Borrador inicial del usuario: ${instructions || 'Necesito que me ayude con tarea
 El texto que generes será inyectado directamente en el núcleo de la IA. Usa un tono directo, lista de reglas, y delimita claramente su alcance, tono, y cómo debe responder.
 DEVUELVE ÚNICAMENTE EL TEXTO DE LAS INSTRUCCIONES LOGRADAS, sin introducciones ni comillas.`;
             
-            const response = await sendSmartMessage({ message: prompt, history: [], empresa: activeEmpresa, appData: {} });
+            const response = await sendLlamaMessage({ message: prompt, history: [], empresa: activeEmpresa, appData: {} });
             setInstructions(response.text);
             toast.success('Instrucciones optimizadas con IA');
         } catch (e) {
@@ -327,73 +327,7 @@ export default function WorkFlowAIDashboard() {
     const textareaRef = useRef(null);
     const fileInputRef = useRef(null);
     
-    // --- LOCAL AI STATE ---
-    const isElectron = typeof window !== 'undefined' && window.electronAPI;
-    const [activeModel, setActiveModel] = useState('gemini');
-    const [hwInfo, setHwInfo] = useState(null);
-    const [modelStatuses, setModelStatuses] = useState({});
-    const [downloads, setDownloads] = useState({});
-    const [localEngineRunning, setLocalEngineRunning] = useState(false);
-    const [isStartingEngine, setIsStartingEngine] = useState(false);
-    const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-    const [mapsSearchEnabled, setMapsSearchEnabled] = useState(false);
     const [globalMemory, setGlobalMemory] = useState('');
-
-    const LOCAL_MODELS = [
-        { id: 'gemma', name: 'Gemma 4 (Local)', size: '1.6 GB' },
-        { id: 'qwen', name: 'Qwen 3.5 (Local)', size: '2.5 GB' },
-        { id: 'llama', name: 'Llama 3 (Local)', size: '4.9 GB' },
-        { id: 'deepseek', name: 'DeepSeek Coder (Local)', size: '9.0 GB' }
-    ];
-
-    useEffect(() => {
-        if (isElectron) {
-            window.electronAPI.checkHardware().then(setHwInfo);
-            const cleanup = window.electronAPI.onDownloadProgress((data) => {
-                setDownloads(prev => ({ ...prev, [data.modelId]: data.progress }));
-                if (data.done || data.error) checkModelStatus(data.modelId);
-            });
-            LOCAL_MODELS.forEach(m => checkModelStatus(m.id));
-            return cleanup;
-        }
-    }, [isElectron]);
-
-    const checkModelStatus = async (modelId) => {
-        if (!isElectron) return;
-        const res = await window.electronAPI.getModelStatus(modelId);
-        setModelStatuses(prev => ({ ...prev, [modelId]: res.status }));
-    };
-
-    const handleDownloadModel = async (modelId) => {
-        if (!isElectron) return;
-        await window.electronAPI.downloadModel(modelId);
-        checkModelStatus(modelId);
-    };
-
-    const handleModelChange = async (e) => {
-        const newModel = e.target.value;
-        if (newModel !== 'gemini' && isElectron) {
-            const status = modelStatuses[newModel];
-            if (status === 'ready') {
-                const loadingToast = toast.loading(`Iniciando motor local para ${newModel}...`);
-                try {
-                    await window.electronAPI.startModel(newModel);
-                    setLocalEngineRunning(true);
-                    toast.success('Motor local iniciado.', { id: loadingToast });
-                    toast.success('Motor local iniciado.');
-                } catch (err) {
-                    toast.error('Error al iniciar motor local');
-                    return;
-                } finally {
-                    setIsStartingEngine(false);
-                }
-            }
-        } else if (newModel === 'gemini' && isElectron && localEngineRunning) {
-            window.electronAPI.stopModel();
-            setLocalEngineRunning(false);
-        }
-        setActiveModel(newModel);
-    };
 
     useEffect(() => {
         hasInitializedRef.current = false;
@@ -501,7 +435,7 @@ export default function WorkFlowAIDashboard() {
 
     const handleSend = async (textToSend) => {
         const text = textToSend || input;
-        if ((!text.trim() && attachments.length === 0) || isLoading || isStartingEngine) return;
+        if ((!text.trim() && attachments.length === 0) || isLoading) return;
         setInput('');
         
         // Reset textarea height manually after sending
@@ -527,134 +461,58 @@ export default function WorkFlowAIDashboard() {
                 localStorage.setItem('artories_last_session_' + activeEmpresa, currentId);
             }
             let aiResponseText = "";
-            
-            if (activeModel !== 'gemini' && isElectron && localEngineRunning) {
-                // Interceptar llamada para usar Local AI (OpenAI compatible en localhost:8080)
-                const agenticInstructions = `
-ERES UN AGENTE AUTÓNOMO. Tienes la habilidad de ejecutar acciones en la aplicación usando comandos especiales. 
-Si el usuario te pide crear una solicitud, DEBES incluir este bloque exacto en tu respuesta:
-[ACTION:CREATE_REQUEST]
-{"title": "Título corto", "description": "Descripción detallada"}
-[/ACTION]
+            const aiResponse = await sendLlamaMessage({ 
+                message: text, 
+                history: messages, 
+                empresa: activeEmpresa, 
+                appData: { solicitudes: contextRequests },
+                appContext: selectedProject ? `INSTRUCCIONES DEL PROYECTO/ASISTENTE (${selectedProject.name}): ` + selectedProject.instructions : '',
+                attachments: currentAtts
+            });
+            aiResponseText = aiResponse.text;
 
-Si el usuario te pide navegar o ir a otra pantalla (ej. dashboard, solicitudes, ventas, finanzas), DEBES incluir este bloque:
-[ACTION:NAVIGATE]
-{"path": "/ruta"}
-[/ACTION]
-Rutas disponibles: /dashboard, /solicitudes, /finanzas, /ventas, /campanas, /usuarios, /empresas.
+            // Agentic Protocol Interceptor for Llama 3.1
+            const actionRegex = /\[ACTION:(.*?)\]([\s\S]*?)\[\/ACTION\]/g;
+            let match;
+            let actionsExecuted = 0;
+            let cleanResponseText = aiResponseText;
 
-Responde naturalmente al usuario, pero usa los bloques [ACTION] cuando te pidan ejecutar algo.
-`;
-                let combinedSystemPrompt = agenticInstructions;
-                if (globalMemory) combinedSystemPrompt += `\nMEMORIA GLOBAL DEL USUARIO: ${globalMemory}`;
-                if (selectedProject) combinedSystemPrompt += `\nINSTRUCCIONES DEL PROYECTO: ${selectedProject.instructions}`;
-
-                const apiMessages = [
-                    { role: 'system', content: combinedSystemPrompt }
-                ];
-                messages.forEach(m => {
-                    apiMessages.push({ role: m.role === 'model' ? 'assistant' : 'user', content: m.content });
-                });
-                
-                let userPrompt = text;
-                if (mapsSearchEnabled) {
-                    const searchToast = toast.loading('Buscando ubicación en el mapa...', { id: 'search-maps-toast' });
-                    try {
-                        const mapResults = await window.electronAPI.searchMaps(text);
-                        userPrompt = `El usuario pregunta por un lugar: "${text}"\n\nResultados de OpenStreetMap:\n${mapResults}\n\nSi encontraste el lugar, responde con un enlace en este formato exacto para Google Maps: https://www.google.com/maps/search/?api=1&query=LATITUD,LONGITUD. Responde de forma amable y provee el enlace.`;
-                        toast.success('Ubicación encontrada', { id: searchToast });
-                    } catch (e) {
-                        toast.error('Error buscando ubicación', { id: searchToast });
-                    }
-                } else if (webSearchEnabled) {
-                    const searchToast = toast.loading('Buscando en la web...', { id: 'search-toast' });
-                    try {
-                        const webResults = await window.electronAPI.searchWeb(text);
-                        userPrompt = `El usuario pregunta: "${text}"\n\nResultados de búsqueda web recientes:\n${webResults}\n\nResponde basándote en los resultados si es necesario.`;
-                        toast.success('Búsqueda completada', { id: searchToast });
-                    } catch (e) {
-                        toast.error('Error en búsqueda web', { id: searchToast });
-                    }
-                }
-                apiMessages.push({ role: 'user', content: userPrompt });
-
-                const res = await fetch('http://127.0.0.1:8080/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: apiMessages, temperature: 0.7 })
-                });
-                if (!res.ok) {
-                    let errMsg = 'Error en IA local';
-                    try {
-                        const errData = await res.json();
-                        if (errData?.error?.message) errMsg = errData.error.message;
-                    } catch(e) {}
-                    if (res.status === 503 && errMsg.toLowerCase().includes('loading')) {
-                        throw new Error('El modelo de IA aún está cargando en la memoria RAM. Por favor, espera unos segundos e intenta de nuevo.');
-                    }
-                    throw new Error(errMsg);
-                }
-                const data = await res.json();
-                aiResponseText = data.choices[0].message.content;
-
-                // Agentic Protocol Interceptor
-                const actionRegex = /\[ACTION:(.*?)\]([\s\S]*?)\[\/ACTION\]/g;
-                let match;
-                let actionsExecuted = 0;
-                let cleanResponseText = aiResponseText;
-
-                while ((match = actionRegex.exec(aiResponseText)) !== null) {
-                    const actionType = match[1].trim();
-                    const jsonString = match[2].trim();
-                    try {
-                        const payload = JSON.parse(jsonString);
-                        
-                        if (actionType === 'NAVIGATE') {
-                            if (payload.path) {
-                                navigate(payload.path);
-                                toast.success(`Navegando a: ${payload.path}`);
-                                actionsExecuted++;
-                            }
-                        } else if (actionType === 'CREATE_REQUEST') {
-                            if (payload.title) {
-                                await addDoc(collection(db, 'solicitudes'), {
-                                    titulo: payload.title,
-                                    descripcion: payload.description || 'Creado por IA Local',
-                                    estado: 'Pendiente',
-                                    empresa: activeEmpresa,
-                                    fechaRequerida: new Date().toISOString().split('T')[0],
-                                    creador: user.uid,
-                                    creadoEn: serverTimestamp()
-                                });
-                                toast.success('Solicitud creada exitosamente por la IA');
-                                actionsExecuted++;
-                            }
+            while ((match = actionRegex.exec(aiResponseText)) !== null) {
+                const actionType = match[1].trim();
+                const jsonString = match[2].trim();
+                try {
+                    const payload = JSON.parse(jsonString);
+                    if (actionType === 'NAVIGATE') {
+                        if (payload.path) {
+                            navigate(payload.path);
+                            toast.success(`Navegando a: ${payload.path}`);
+                            actionsExecuted++;
                         }
-                    } catch (e) {
-                        console.error("Error parsing AI action payload:", e);
+                    } else if (actionType === 'CREATE_REQUEST') {
+                        if (payload.title) {
+                            await addDoc(collection(db, 'solicitudes'), {
+                                titulo: payload.title,
+                                descripcion: payload.description || 'Creado por IA',
+                                estado: 'Pendiente',
+                                empresa: activeEmpresa,
+                                fechaRequerida: new Date().toISOString().split('T')[0],
+                                creador: user.uid,
+                                creadoEn: serverTimestamp()
+                            });
+                            toast.success('Solicitud creada exitosamente por la IA');
+                            actionsExecuted++;
+                        }
                     }
+                } catch (e) {
+                    console.error("Error parsing AI action payload:", e);
                 }
-                
-                // Clean the output so the user doesn't see the JSON blocks
-                cleanResponseText = cleanResponseText.replace(/\[ACTION:.*?\][\s\S]*?\[\/ACTION\]/g, '').trim();
-                
-                if (actionsExecuted > 0 && !cleanResponseText) {
-                    cleanResponseText = "¡He completado la acción solicitada!";
-                }
-                aiResponseText = cleanResponseText;
-
-            } else {
-                // Gemini Cloud
-                const aiResponse = await sendSmartMessage({ 
-                    message: text, 
-                    history: messages, 
-                    empresa: activeEmpresa, 
-                    appData: { solicitudes: contextRequests },
-                    appContext: selectedProject ? `INSTRUCCIONES DEL PROYECTO/ASISTENTE (${selectedProject.name}): ` + selectedProject.instructions : '',
-                    attachments: currentAtts
-                });
-                aiResponseText = aiResponse.text;
             }
+            
+            cleanResponseText = cleanResponseText.replace(/\[ACTION:.*?\][\s\S]*?\[\/ACTION\]/g, '').trim();
+            if (actionsExecuted > 0 && !cleanResponseText) {
+                cleanResponseText = "¡He completado la acción solicitada!";
+            }
+            aiResponseText = cleanResponseText;
 
             const aiMsg = { role: 'model', content: aiResponseText, timestamp: Date.now() };
             const finalMessages = [...newMessages, aiMsg];
@@ -750,16 +608,6 @@ Responde naturalmente al usuario, pero usa los bloques [ACTION] cuando te pidan 
                         <div>
                             <h1 className="text-sm sm:text-lg font-black tracking-tighter flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
                                 Artories IA 
-                                <select 
-                                    value={activeModel} 
-                                    onChange={handleModelChange}
-                                    className="ml-2 bg-zinc-900 border border-zinc-800 text-white text-[10px] sm:text-xs rounded-xl px-2 py-1 outline-none font-bold"
-                                >
-                                    <option value="gemini">☁️ Gemini Pro (Cloud)</option>
-                                    {isElectron && LOCAL_MODELS.map(m => (
-                                        <option key={m.id} value={m.id}>{m.name}</option>
-                                    ))}
-                                </select>
                             </h1>
                             {selectedProject && <p className="text-[9px] sm:text-[10px] text-emerald-400 uppercase tracking-widest font-bold mt-1 sm:mt-1.5 flex items-center gap-1.5"><FolderGit2 size={10}/> Proyecto: {selectedProject.name}</p>}
                         </div>
@@ -789,38 +637,7 @@ Responde naturalmente al usuario, pero usa los bloques [ACTION] cuando te pidan 
                     <div ref={chatEndRef} className="h-24 sm:h-32" />
                 </div>
                 
-                {/* Local Download / Status Banner */}
-                {activeModel !== 'gemini' && modelStatuses[activeModel] !== 'ready' && (
-                    <div className="absolute inset-x-0 bottom-24 bg-zinc-900/90 backdrop-blur-xl border-t border-zinc-800 p-6 z-20 mx-4 sm:mx-8 rounded-[2rem] shadow-2xl animate-in slide-in-from-bottom">
-                        <div className="flex flex-col sm:flex-row items-center gap-6 justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-violet-600/20 text-violet-400 flex items-center justify-center shrink-0">
-                                    <HardDrive size={24} />
-                                </div>
-                                <div>
-                                    <h3 className="text-white font-bold tracking-tight">Modelo No Instalado</h3>
-                                    <p className="text-xs text-zinc-400 mt-1">
-                                        Tu Hardware: {hwInfo ? `${hwInfo.ram}GB RAM, ${hwInfo.cores} Hilos` : 'Analizando...'}
-                                    </p>
-                                    <p className="text-[10px] text-zinc-500 mt-0.5">Se descargará el motor y el modelo <span className="text-violet-400 font-bold">{LOCAL_MODELS.find(m => m.id === activeModel)?.name}</span> (Tamaño aprox: <span className="text-white font-bold">{LOCAL_MODELS.find(m => m.id === activeModel)?.size}</span>) para procesar 100% local sin internet.</p>
-                                </div>
-                            </div>
-                            
-                            {downloads[activeModel] !== undefined ? (
-                                <div className="w-full sm:w-48 text-right">
-                                    <div className="w-full bg-zinc-800 rounded-full h-2 mb-2">
-                                        <div className="bg-violet-500 h-2 rounded-full transition-all duration-300" style={{ width: `${downloads[activeModel]}%` }}></div>
-                                    </div>
-                                    <span className="text-xs text-zinc-400 font-bold">{downloads[activeModel]}% Descargado</span>
-                                </div>
-                            ) : (
-                                <button onClick={() => handleDownloadModel(activeModel)} className="w-full sm:w-auto px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-violet-900/50 flex items-center justify-center gap-2">
-                                    <DownloadCloud size={16} /> Descargar e Instalar
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
+
                 <div className="p-4 sm:p-8 bg-gradient-to-t from-black via-black/90 to-transparent sticky bottom-0 border-t border-zinc-900/50 backdrop-blur-xl">
                     <div className="max-w-4xl mx-auto relative group">
                         {attachments.length > 0 && (
@@ -834,36 +651,14 @@ Responde naturalmente al usuario, pero usa los bloques [ACTION] cuando te pidan 
                                 ))}
                             </div>
                         )}
-                        <div className="flex items-center gap-4 mb-3 ml-2">
-                            {isElectron && activeModel !== 'gemini' && (
-                                <>
-                                    <button onClick={() => { setWebSearchEnabled(!webSearchEnabled); setMapsSearchEnabled(false); }} className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full transition-all border ${webSearchEnabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300'}`}>
-                                        <div className={`w-2 h-2 rounded-full ${webSearchEnabled ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-zinc-700'}`}></div>
-                                        Conexión Web
-                                    </button>
-                                    <button onClick={() => { setMapsSearchEnabled(!mapsSearchEnabled); setWebSearchEnabled(false); }} className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full transition-all border ${mapsSearchEnabled ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300'}`}>
-                                        <div className={`w-2 h-2 rounded-full ${mapsSearchEnabled ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : 'bg-zinc-700'}`}></div>
-                                        Buscar Mapa
-                                    </button>
-                                </>
-                            )}
-                        </div>
                         <div className="bg-zinc-950/80 border border-zinc-800 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4 pr-24 sm:pr-28 focus-within:border-violet-500/50 transition-all shadow-2xl backdrop-blur-md ring-1 ring-white/5 relative">
-                            {isStartingEngine && (
-                                <div className="absolute -top-12 left-0 right-0 flex items-center justify-center">
-                                    <div className="bg-violet-600 text-white text-xs px-4 py-2 rounded-full flex items-center gap-2 shadow-[0_0_20px_rgba(124,58,237,0.4)] animate-pulse border border-violet-500">
-                                        <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-                                        Iniciando motor de IA Local... (puede tardar unos 20s)
-                                    </div>
-                                </div>
-                            )}
-                            <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} onInput={(e) => { e.target.style.height = 'inherit'; e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`; }} placeholder={isStartingEngine ? "Esperando al motor local..." : "Consultar Artories IA o pega una imagen..."} className="w-full bg-transparent border-none focus:ring-0 text-white text-sm px-3 sm:px-4 py-2 sm:py-3 resize-none custom-scrollbar min-h-[40px] sm:min-h-[50px] font-medium leading-relaxed placeholder:text-zinc-600" rows={1} disabled={isStartingEngine} />
+                            <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} onInput={(e) => { e.target.style.height = 'inherit'; e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`; }} placeholder="Consultar Artories IA o pega una imagen..." className="w-full bg-transparent border-none focus:ring-0 text-white text-sm px-3 sm:px-4 py-2 sm:py-3 resize-none custom-scrollbar min-h-[40px] sm:min-h-[50px] font-medium leading-relaxed placeholder:text-zinc-600" rows={1} disabled={isLoading} />
                             
                             <div className="absolute right-3.5 sm:right-6 bottom-3.5 sm:bottom-6 flex items-center gap-2">
-                                <button onClick={() => fileInputRef.current?.click()} disabled={isLoading || isStartingEngine} className="p-3 sm:p-4 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-2xl sm:rounded-[1.5rem] transition-all disabled:opacity-50">
+                                <button onClick={() => fileInputRef.current?.click()} disabled={isLoading} className="p-3 sm:p-4 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-2xl sm:rounded-[1.5rem] transition-all disabled:opacity-50">
                                     <Paperclip size={18} />
                                 </button>
-                                <button onClick={() => handleSend()} disabled={isLoading || isStartingEngine || (!input.trim() && attachments.length === 0)} className="p-3 sm:p-4 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-800 disabled:text-zinc-600 rounded-2xl sm:rounded-[1.5rem] transition-all shadow-[0_0_20px_rgba(124,58,237,0.4)]">{isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}</button>
+                                <button onClick={() => handleSend()} disabled={isLoading || (!input.trim() && attachments.length === 0)} className="p-3 sm:p-4 bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-800 disabled:text-zinc-600 rounded-2xl sm:rounded-[1.5rem] transition-all shadow-[0_0_20px_rgba(124,58,237,0.4)]">{isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}</button>
                             </div>
                             
                             <input type="file" ref={fileInputRef} multiple onChange={handleFileChange} className="hidden" />

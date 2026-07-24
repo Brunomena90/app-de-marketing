@@ -1,4 +1,5 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { setupAIManager } from './aiManager.js';
@@ -83,6 +84,25 @@ if (!gotTheLock) {
         shell.openExternal(details.url);
         return { action: 'deny' };
       });
+    });
+
+    // Custom Folder Selection and File Saving
+    ipcMain.handle('dialog:selectFolder', async () => {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory']
+      });
+      return result;
+    });
+
+    ipcMain.handle('fs:saveFile', async (event, { buffer, folderPath, fileName }) => {
+      try {
+        const fullPath = path.join(folderPath, fileName);
+        fs.writeFileSync(fullPath, Buffer.from(buffer));
+        return { success: true, path: fullPath };
+      } catch (error) {
+        console.error('Error saving file via IPC:', error);
+        return { success: false, error: error.message };
+      }
     });
 
     // Configurar Auto Updater

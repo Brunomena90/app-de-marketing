@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('ai:modelLog', listener);
     },
     openFloatingWindow: (route) => ipcRenderer.invoke('openFloatingWindow', route),
+    // Almacenamiento local (Hub)
+    selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
+    saveFileToDisk: (args) => ipcRenderer.invoke('fs:saveFile', args),
     // Auto-updater
     checkForUpdates: () => ipcRenderer.invoke('updater:check'),
     downloadUpdate: () => ipcRenderer.invoke('updater:download'),

@@ -7,11 +7,11 @@ import {
     Sparkles, Send, User, Trash2, Plus, MessageSquare, Loader2, TrendingUp, Megaphone, FileText, ChevronLeft, Paperclip, X, File, Download, DownloadCloud
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { sendSmartMessage } from '../../services/geminiService';
+import { sendLlamaMessage } from '../../services/llamaService';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import RequestDetail from '../../components/RequestDetail';
-
+import { sendEmailViaGmail, requestGmailAuthorization } from '../../services/gmailService';
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -34,7 +34,7 @@ const renderMarkdown = (text) => {
     content = content.replace(/\*(.*?)\*/g, '<em class="text-gray-600 italic">$1</em>');
     content = content.replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-blue-500 bg-blue-50 text-blue-800 p-4 rounded-r-lg my-4 font-medium">$1</blockquote>');
     content = content.replace(/^[\s]*[-*] (.*$)/gm, '<div class="flex items-start gap-3 my-2 group/item ml-2"><div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2.5 shrink-0"></div><span class="text-gray-700 text-[14px] leading-relaxed">$1</span></div>');
-    
+
     const bArray = [];
     content = content.replace(/(<(div|pre|h1|h2|h3|blockquote|a|span)[\s\S]*?<\/\2>)/gi, (m) => { bArray.push(m); return "__STRUCT_BLOCK_" + (bArray.length - 1) + "__"; });
     content = content.replace(/\n/g, '<br />');
@@ -63,10 +63,10 @@ const MessageBubble = ({ msg, onOpenRequest }) => {
         doc.setFontSize(16);
         doc.setFont("helvetica", "bold");
         doc.text("Documento Generado por IA", 20, 20);
-        
+
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        
+
         let text = msg.content
             .replace(/\*\*(.*?)\*\*/g, '$1')
             .replace(/\*(.*?)\*/g, '$1')
@@ -74,7 +74,7 @@ const MessageBubble = ({ msg, onOpenRequest }) => {
             .replace(/>(.*)/g, '$1')
             .replace(/```json[\s\S]*?```/g, '') // Ocultar bloques JSON de creacion
             .trim();
-            
+
         const splitText = doc.splitTextToSize(text, 170);
         let y = 35;
         for (let i = 0; i < splitText.length; i++) {
@@ -133,7 +133,6 @@ const LoadingDotsBubble = () => (
     </div>
 );
 
-const isElectron = navigator.userAgent.toLowerCase().indexOf(' electron/') > -1;
 
 export default function FuncionIA() {
     const navigate = useNavigate();
@@ -146,105 +145,14 @@ export default function FuncionIA() {
     const [isLoading, setIsLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(true);
     const [attachments, setAttachments] = useState([]);
-    
-    // Local AI States
-    const [activeModel, setActiveModel] = useState('gemini');
-    const [modelStatuses, setModelStatuses] = useState({});
-    const [downloads, setDownloads] = useState({});
-    const [localEngineRunning, setLocalEngineRunning] = useState(false);
-    const [isStartingEngine, setIsStartingEngine] = useState(false);
-    const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-    const [mapsSearchEnabled, setMapsSearchEnabled] = useState(false);
 
-    const LOCAL_MODELS = [
-        { id: 'gemma', name: 'Gemma 4 (Local)', size: '1.6 GB' },
-        { id: 'qwen', name: 'Qwen 3.5 (Local)', size: '2.1 GB' },
-        { id: 'llama', name: 'Llama 4 (Local)', size: '3.8 GB' },
-        { id: 'deepseek', name: 'DeepSeek (Local)', size: '2.4 GB' }
-    ];
-
-    useEffect(() => {
-        if (!isElectron || activeModel === 'gemini') return;
-        let started = false;
-        
-        const checkStatus = async () => {
-            try {
-                if (modelStatuses[activeModel] === undefined) {
-                    setModelStatuses(prev => ({ ...prev, [activeModel]: 'checking' }));
-                }
-                const res = await window.electronAPI.getModelStatus(activeModel);
-                const status = res.status;
-                setModelStatuses(prev => ({ ...prev, [activeModel]: status }));
-                if (status === 'ready') {
-                    if (!started) {
-                        started = true;
-                        setIsStartingEngine(true);
-                        setLocalEngineRunning(false);
-                        try {
-                            await window.electronAPI.startModel(activeModel);
-                            setLocalEngineRunning(true);
-                        } catch(err) {
-                            console.error("Failed to start model:", err);
-                            toast.error("Error al iniciar el motor de IA");
-                        } finally {
-                            setIsStartingEngine(false);
-                        }
-                    }
-                } else {
-                    setLocalEngineRunning(false);
-                    started = false;
-                }
-            } catch (error) {
-                console.error("Error checking model status:", error);
-                setModelStatuses(prev => ({ ...prev, [activeModel]: 'error' }));
-            }
-        };
-
-        checkStatus();
-        const interval = setInterval(checkStatus, 3000);
-        return () => clearInterval(interval);
-    }, [activeModel]);
-
-    useEffect(() => {
-        if (!isElectron) return;
-        const cleanup = window.electronAPI.onDownloadProgress((data) => {
-            if (data.modelId) {
-                setDownloads(prev => ({ ...prev, [data.modelId]: data.percent }));
-                if (data.status === 'completed') {
-                    setModelStatuses(prev => ({ ...prev, [data.modelId]: 'ready' }));
-                    if (activeModel === data.modelId) {
-                        setIsStartingEngine(true);
-                        setLocalEngineRunning(false);
-                        window.electronAPI.startModel(activeModel).then(() => {
-                            setLocalEngineRunning(true);
-                            setIsStartingEngine(false);
-                        }).catch(e => {
-                            toast.error("Error al iniciar el modelo");
-                            setIsStartingEngine(false);
-                        });
-                    }
-                }
-            }
-        });
-        return cleanup;
-    }, [activeModel]);
-
-    const handleDownloadModel = async (modelId) => {
-        if (!isElectron) return;
-        try {
-            await window.electronAPI.downloadModel(modelId);
-            setModelStatuses(prev => ({ ...prev, [modelId]: 'downloading' }));
-            setDownloads(prev => ({ ...prev, [modelId]: 0 }));
-        } catch (error) {
-            toast.error("Error al iniciar descarga");
-        }
-    };
-    
+    const [isProcessing, setIsProcessing] = useState(false);
     // Additional contexts for Marketing Module
     const [contextCampanas, setContextCampanas] = useState([]);
     const [contextCuadro, setContextCuadro] = useState([]);
     const [contextLinks, setContextLinks] = useState([]);
     const [contextCuadernos, setContextCuadernos] = useState([]);
+    const [contextDirectorio, setContextDirectorio] = useState([]);
     const [selectedRequest, setSelectedRequest] = useState(null);
 
     const handleOpenRequest = async (id) => {
@@ -377,6 +285,22 @@ export default function FuncionIA() {
     }
     \`\`\`
 
+    Para ENVIAR UN CORREO ELECTRÓNICO A UN CLIENTE:
+    \`\`\`json
+    {
+      "action": "send_email",
+      "data": { "to": "correo@cliente.com", "subject": "Asunto", "body": "Cuerpo del correo (puede ser HTML)" }
+    }
+    \`\`\`
+
+    Para ACTUALIZAR EL ESTADO DE UN CLIENTE (Ventas):
+    \`\`\`json
+    {
+      "action": "update_client_status",
+      "data": { "clientId": "ID", "status": "contactado, en seguimiento, en negociación, cerrado, perdido" }
+    }
+    \`\`\`
+
     (Nota: 'type' para solicitudes puede ser 'video' o 'post'). Asegúrate de ser creativo, persuasivo y muy estructurado en tus respuestas. Conoces la marca actual por la empresa seleccionada.`;
 
     useEffect(() => {
@@ -385,7 +309,7 @@ export default function FuncionIA() {
         const unsub = onSnapshot(q, (snap) => {
             const sessionsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
             setSessions(sessionsData);
-            
+
             const savedId = localStorage.getItem('marketing_ai_last_session_' + activeEmpresa);
             if (!activeSessionId) {
                 if (savedId && sessionsData.some(s => s.id === savedId)) {
@@ -410,7 +334,7 @@ export default function FuncionIA() {
     // Load additional marketing contexts
     useEffect(() => {
         if (!activeEmpresa) return;
-        
+
         const qCampanas = activeEmpresa === 'Todas' ? query(collection(db, 'campanas')) : query(collection(db, 'campanas'), where('empresa', '==', activeEmpresa));
         const unsubCampanas = onSnapshot(qCampanas, snap => setContextCampanas(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 
@@ -423,11 +347,15 @@ export default function FuncionIA() {
         const qCuadernos = activeEmpresa === 'Todas' ? query(collection(db, 'cuadernos')) : query(collection(db, 'cuadernos'), where('empresa', '==', activeEmpresa));
         const unsubCuadernos = onSnapshot(qCuadernos, snap => setContextCuadernos(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 
+        const qDirectorio = activeEmpresa === 'Todas' ? query(collection(db, 'ventas_directorio')) : query(collection(db, 'ventas_directorio'), where('empresaId', '==', activeEmpresa));
+        const unsubDirectorio = onSnapshot(qDirectorio, snap => setContextDirectorio(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+
         return () => {
             unsubCampanas();
             unsubCuadro();
             unsubLinks();
             unsubCuadernos();
+            unsubDirectorio();
         };
     }, [activeEmpresa]);
 
@@ -436,7 +364,7 @@ export default function FuncionIA() {
     const handleFileChange = async (e) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
-        
+
         const newAttachments = [];
         for (const file of files) {
             if (file.size > 5 * 1024 * 1024) {
@@ -484,7 +412,7 @@ export default function FuncionIA() {
                 }
             }
         }
-        
+
         if (newAttachments.length > 0) {
             setAttachments(prev => [...prev, ...newAttachments]);
         }
@@ -494,7 +422,7 @@ export default function FuncionIA() {
         const text = textToSend || input;
         if ((!text.trim() && attachments.length === 0) || isLoading) return;
         setInput('');
-        
+
         // Reset textarea height manually after sending
         const textareas = document.querySelectorAll('textarea');
         textareas.forEach(t => t.style.height = 'inherit');
@@ -521,104 +449,38 @@ export default function FuncionIA() {
 
             const textLower = text.toLowerCase();
             const searchWords = textLower.split(/\s+/).filter(w => w.length > 3);
-            
+
             // Obtener solo las últimas 10 solicitudes de la empresa
             const solicitudes_optimizadas = contextRequests
                 .filter(r => r.empresa === activeEmpresa)
                 .slice(0, 10)
                 .map(r => {
-                    return { 
-                        id: r.id, 
-                        title: r.title, 
+                    return {
+                        id: r.id,
+                        title: r.title,
                         status: r.status,
-                        briefing: r.briefing, 
-                        checklist: r.checklist 
+                        briefing: r.briefing,
+                        checklist: r.checklist
                     };
                 });
 
-            let aiText = "";
-
-            if (activeModel !== 'gemini' && isElectron && localEngineRunning) {
-                // Interceptar llamada para usar Local AI en Marketing
-                const globalMemory = localStorage.getItem('artories_global_memory') || '';
-                
-                // Add short context of existing DB items directly into system prompt since we don't have embeddings setup yet
-                const localContextStr = `
-EMPRESA SELECCIONADA ACTUALMENTE: "${activeEmpresa}".
-Todas tus respuestas y acciones deben estar 100% enfocadas en la empresa ${activeEmpresa}.
-${globalMemory ? `MEMORIA A LARGO PLAZO DE LA MARCA:\n${globalMemory}\n` : ''}
-ÚLTIMAS 10 SOLICITUDES DE LA MARCA PARA CONTEXTO DE MARKETING: ${JSON.stringify(solicitudes_optimizadas).substring(0, 800)}...
-CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
-                `;
-
-                const combinedSystemPrompt = MARKETING_SYSTEM_PROMPT + "\n\n" + localContextStr;
-
-                const apiMessages = [
-                    { role: 'system', content: combinedSystemPrompt }
-                ];
-
-                messages.forEach(m => {
-                    apiMessages.push({ role: m.role === 'model' ? 'assistant' : 'user', content: m.content });
-                });
-                
-                let userPrompt = text;
-                if (mapsSearchEnabled) {
-                    const searchToast = toast.loading('Buscando ubicación en el mapa...', { id: 'search-maps-toast' });
-                    try {
-                        const mapResults = await window.electronAPI.searchMaps(text);
-                        userPrompt = `El usuario pregunta por un lugar: "${text}"\n\nResultados de OpenStreetMap:\n${mapResults}\n\nSi encontraste el lugar, responde con un enlace en este formato exacto para Google Maps: https://www.google.com/maps/search/?api=1&query=LATITUD,LONGITUD. Responde de forma amable y provee el enlace.`;
-                        toast.success('Ubicación encontrada', { id: searchToast });
-                    } catch (e) {
-                        toast.error('Error buscando ubicación', { id: searchToast });
-                    }
-                } else if (webSearchEnabled) {
-                    const searchToast = toast.loading('Buscando en la web...', { id: 'search-toast' });
-                    try {
-                        const webResults = await window.electronAPI.searchWeb(text);
-                        userPrompt = `El usuario pregunta: "${text}"\n\nResultados de búsqueda web recientes:\n${webResults}\n\nResponde basándote en los resultados si es necesario.`;
-                        toast.success('Búsqueda completada', { id: searchToast });
-                    } catch (e) {
-                        toast.error('Error en búsqueda web', { id: searchToast });
-                    }
-                }
-                apiMessages.push({ role: 'user', content: userPrompt });
-
-                const res = await fetch('http://127.0.0.1:8080/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: apiMessages, temperature: 0.7 })
-                });
-                if (!res.ok) {
-                    let errMsg = 'Error en IA local';
-                    try {
-                        const errData = await res.json();
-                        if (errData?.error?.message) errMsg = errData.error.message;
-                    } catch(e) {}
-                    if (res.status === 503 && errMsg.toLowerCase().includes('loading')) {
-                        throw new Error('El modelo de IA aún está cargando en la memoria RAM. Por favor, espera unos segundos e intenta de nuevo.');
-                    }
-                    throw new Error(errMsg);
-                }
-                const data = await res.json();
-                aiText = data.choices[0].message.content;
-            } else {
-                // Gemini Cloud
-                const aiResponse = await sendSmartMessage({ 
-                    message: text, 
-                    history: messages, 
-                    empresa: activeEmpresa, 
-                    appData: { 
-                        solicitudes_disponibles: solicitudes_optimizadas,
-                        campanas_disponibles: contextCampanas,
-                        cuadro_contenidos_disponibles: contextCuadro,
-                        links_disponibles: contextLinks,
-                        cuadernos_disponibles: contextCuadernos
-                    },
-                    appContext: MARKETING_SYSTEM_PROMPT,
-                    attachments: currentAtts
-                });
-                aiText = aiResponse.text;
-            }
+            // Configuración Exclusiva de Llama 3.1
+            const aiResponse = await sendLlamaMessage({
+                message: text,
+                history: messages,
+                empresa: activeEmpresa,
+                appData: {
+                    solicitudes_disponibles: solicitudes_optimizadas,
+                    campanas_disponibles: contextCampanas,
+                    cuadro_contenidos_disponibles: contextCuadro,
+                    links_disponibles: contextLinks,
+                    cuadernos_disponibles: contextCuadernos,
+                    directorio_ventas: contextDirectorio
+                },
+                appContext: MARKETING_SYSTEM_PROMPT,
+                attachments: currentAtts
+            });
+            let aiText = aiResponse.text;
 
             // Procesar Múltiples JSON Actions si existen
             const jsonMatches = [...aiText.matchAll(/\`\`\`json\s*([\s\S]*?)\s*\`\`\`/g)];
@@ -718,8 +580,22 @@ CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
                         await updateDoc(doc(db, "cuadernos", parsed.data.id), parsed.data.updates);
                         toast.success("¡Cuaderno actualizado!");
                         aiText = aiText.replace(match[0], "\n\n> ✅ **He actualizado el Cuaderno.**");
+                    } else if (parsed.action === 'send_email' && parsed.data) {
+                        try {
+                            await requestGmailAuthorization();
+                            await sendEmailViaGmail(parsed.data.to, parsed.data.subject, parsed.data.body);
+                            toast.success("Correo enviado exitosamente");
+                            aiText = aiText.replace(match[0], `\n\n> ✅ **He enviado el correo a ${parsed.data.to}.**`);
+                        } catch (e) {
+                            toast.error("Error al enviar el correo con IA");
+                            aiText = aiText.replace(match[0], "\n\n> ❌ **Hubo un error al intentar enviar el correo. Por favor, asegúrate de haber concedido los permisos de Gmail.**");
+                        }
+                    } else if (parsed.action === 'update_client_status' && parsed.data && parsed.data.clientId) {
+                        await updateDoc(doc(db, "ventas_directorio", parsed.data.clientId), { estado: parsed.data.status, updatedAt: serverTimestamp() });
+                        toast.success("Estado del cliente actualizado");
+                        aiText = aiText.replace(match[0], `\n\n> ✅ **He actualizado el estado del cliente a '${parsed.data.status}'.**`);
                     }
-                } catch(e) {
+                } catch (e) {
                     console.error("Failed to parse JSON from AI", e);
                 }
             }
@@ -728,11 +604,11 @@ CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
             const finalMessages = [...newMessages, aiMsg];
             setMessages(finalMessages);
             await updateDoc(doc(db, 'marketing_ai_chats', currentId), { messages: finalMessages, updatedAt: serverTimestamp() });
-        } catch (err) { 
+        } catch (err) {
             console.error(err);
-            toast.error(err.message || 'Error de comunicación con la IA'); 
-        } finally { 
-            setIsLoading(false); 
+            toast.error(err.message || 'Error de comunicación con la IA');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -749,27 +625,11 @@ CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
                     </button>
                     <div>
                         <h1 className="text-gray-800 font-bold text-lg flex items-center gap-2">
-                            Función IA 
+                            Función IA
                             <span className="bg-blue-100 text-blue-700 text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wide font-bold border border-blue-200">
                                 Marketing
                             </span>
                         </h1>
-                    </div>
-                    {/* SELECTOR DE MODELOS CLONADO */}
-                    <div className="ml-4 relative group">
-                        <select 
-                            value={activeModel}
-                            onChange={(e) => setActiveModel(e.target.value)}
-                            className="appearance-none bg-white border border-gray-300 text-gray-700 text-sm font-bold py-1.5 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
-                        >
-                            <option value="gemini">Gemini Cloud (Online)</option>
-                            {isElectron && LOCAL_MODELS.map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                            ))}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
                     </div>
                 </div>
                 <button onClick={createNewChat} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm transition-transform active:scale-95">
@@ -822,31 +682,6 @@ CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
                             </div>
                         ) : (
                             <div className="max-w-3xl mx-auto py-4">
-                                {isElectron && activeModel !== 'gemini' && modelStatuses[activeModel] !== 'ready' && modelStatuses[activeModel] !== 'checking' && modelStatuses[activeModel] !== undefined && (
-                                    <div className="mb-6 p-4 bg-white border border-blue-200 rounded-2xl flex items-center justify-between shadow-sm">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600"><DownloadCloud size={18} /></div>
-                                            <div>
-                                                <h4 className="text-gray-800 font-bold text-sm">Modelo Requerido</h4>
-                                                <p className="text-gray-500 text-xs">El modelo {LOCAL_MODELS.find(m=>m.id === activeModel)?.name} no está en tu disco.</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            {modelStatuses[activeModel] === 'downloading' ? (
-                                                <div className="text-right">
-                                                    <div className="w-24 sm:w-32 bg-gray-200 rounded-full h-2 mb-1">
-                                                        <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${downloads[activeModel]}%` }}></div>
-                                                    </div>
-                                                    <span className="text-xs text-blue-600 font-bold">{downloads[activeModel]}%</span>
-                                                </div>
-                                            ) : (
-                                                <button onClick={() => handleDownloadModel(activeModel)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm">
-                                                    Descargar
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
                                 {messages.map((m, i) => (<MessageBubble key={i} msg={m} onOpenRequest={handleOpenRequest} />))}
                                 {isLoading && <LoadingDotsBubble />}
                                 <div ref={chatEndRef} className="h-10" />
@@ -867,31 +702,8 @@ CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
                                     ))}
                                 </div>
                             )}
-                            
-                            <div className="flex items-center gap-4 mb-3 ml-2">
-                                {isElectron && activeModel !== 'gemini' && (
-                                    <>
-                                        <button onClick={() => { setWebSearchEnabled(!webSearchEnabled); setMapsSearchEnabled(false); }} className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full transition-all border ${webSearchEnabled ? 'bg-emerald-50 text-emerald-600 border-emerald-300' : 'bg-white text-gray-500 border-gray-300 hover:text-gray-700'}`}>
-                                            <div className={`w-2 h-2 rounded-full ${webSearchEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
-                                            Conexión Web
-                                        </button>
-                                        <button onClick={() => { setMapsSearchEnabled(!mapsSearchEnabled); setWebSearchEnabled(false); }} className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full transition-all border ${mapsSearchEnabled ? 'bg-blue-50 text-blue-600 border-blue-300' : 'bg-white text-gray-500 border-gray-300 hover:text-gray-700'}`}>
-                                            <div className={`w-2 h-2 rounded-full ${mapsSearchEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                                            Buscar Mapa
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                            
+
                             <div className="flex gap-2 relative">
-                                {isStartingEngine && (
-                                    <div className="absolute -top-10 left-0 right-0 flex items-center justify-center">
-                                        <div className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg animate-pulse">
-                                            <div className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-                                            Iniciando motor de IA Local... (puede tardar unos 20s)
-                                        </div>
-                                    </div>
-                                )}
                                 <textarea
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
@@ -901,14 +713,14 @@ CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
                                         e.target.style.height = 'inherit';
                                         e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
                                     }}
-                                    placeholder={isStartingEngine ? "Esperando al motor local..." : "Escribe tu consulta, pega un texto o pide crear una solicitud/campaña..."}
-                                    className="w-full bg-transparent border-none text-gray-800 text-sm py-2 px-2 resize-none outline-none custom-scrollbar placeholder:text-gray-400" 
+                                    placeholder="Escribe tu consulta, pega un texto o pide crear una solicitud/campaña..."
+                                    className="w-full bg-transparent border-none text-gray-800 text-sm py-2 px-2 resize-none outline-none custom-scrollbar placeholder:text-gray-400"
                                     rows={1}
-                                    disabled={isStartingEngine}
+                                    disabled={isLoading}
                                 />
-                                <button 
-                                    onClick={() => handleSend()} 
-                                    disabled={isLoading || isStartingEngine || (!input.trim() && attachments.length === 0)} 
+                                <button
+                                    onClick={() => handleSend()}
+                                    disabled={isLoading || (!input.trim() && attachments.length === 0)}
                                     className="absolute right-2 bottom-2 p-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 rounded-xl transition-all shadow-sm"
                                 >
                                     {isLoading ? <Loader2 size={18} className="animate-spin text-white" /> : <Send size={18} className={(!input.trim() && attachments.length === 0) ? "text-gray-400" : "text-white"} />}
@@ -922,10 +734,10 @@ CAMPAÑAS DE LA MARCA: ${JSON.stringify(contextCampanas).substring(0, 800)}...
                 </div>
             </div>
             {selectedRequest && (
-                <RequestDetail 
-                    request={selectedRequest} 
-                    isOpen={!!selectedRequest} 
-                    onClose={() => setSelectedRequest(null)} 
+                <RequestDetail
+                    request={selectedRequest}
+                    isOpen={!!selectedRequest}
+                    onClose={() => setSelectedRequest(null)}
                 />
             )}
         </div>

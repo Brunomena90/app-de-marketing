@@ -19,14 +19,7 @@ const Layout = ({ children, noPadding = false }) => {
         return () => window.removeEventListener('toggle-marketing-dark', handler);
     }, []);
 
-    // Determinar si es módulo de marketing
-    const isMarketingModule = ['/dashboard', '/solicitudes', '/requerimientos', '/campanas', '/cuadro-contenidos', '/calendario-contenidos', '/links', '/cuadernos', '/funcion-ia'].some(p => location.pathname.startsWith(p));
-
-    // Determinar si debemos aplicar Dark Mode Global basado en la ruta actual
-    const isDarkMode = location.pathname.startsWith('/ventas') || location.pathname.startsWith('/workflow-ai');
-    
-    // Si estamos en ventas/workflow es oscuro por defecto, o si estamos en marketing y tiene oscuro activado.
-    const isDarkTheme = isDarkMode || (isMarketingModule && marketingDark);
+    const isDarkTheme = marketingDark;
     
     const bgGlobalClass = isDarkTheme ? 'bg-[#000000]' : 'bg-gray-100';
 
@@ -93,7 +86,7 @@ const Layout = ({ children, noPadding = false }) => {
                     </div>
 
                     {/* Área de Scroll Principal */}
-                    <main id={isIframePane ? "main-scroll-container-pane" : "main-scroll-container"} className={`flex-1 w-full relative ${(isMarketingModule && marketingDark) ? 'marketing-dark' : ''} ${noPadding ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-4 md:p-8 ${bgGlobalClass}`}`}>
+                    <main id={isIframePane ? "main-scroll-container-pane" : "main-scroll-container"} className={`flex-1 w-full relative [-webkit-overflow-scrolling:touch] ${marketingDark ? 'marketing-dark' : ''} ${noPadding ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-4 md:p-8 ${bgGlobalClass}`}`}>
                         {noPadding ? (
                             isEmpresaDisabled ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center p-6">

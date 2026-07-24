@@ -5,6 +5,7 @@ import { RequestProvider } from './context/RequestContext';
 import { Toaster } from 'sonner';
 import Layout from './components/Layout';
 import AppIcon from './components/AppIcon'; // IMPORT NEW ISOTYPE
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // --- PWA y Optimización: Carga Perezosa (Lazy Loading) de Páginas ---
 // Esto divide el código en fragmentos (chunks) más pequeños, haciendo que la carga inicial sea ultrarrápida.
@@ -36,6 +37,8 @@ const Egresos = lazy(() => import('./pages/finanzas/Egresos'));
 const CotizacionesRecibidas = lazy(() => import('./pages/finanzas/CotizacionesRecibidas'));
 const WorkFlowAIDashboard = lazy(() => import('./pages/workflow-ai/WorkFlowAIDashboard'));
 const Almacenes = lazy(() => import('./pages/almacenes/Almacenes'));
+const ProcesosDashboard = lazy(() => import('./pages/procesos/ProcesosDashboard'));
+const ProcesoDetail = lazy(() => import('./pages/procesos/ProcesoDetail'));
 
 const Paletas = lazy(() => import('./pages/branding/Paletas'));
 const Tipografias = lazy(() => import('./pages/branding/Tipografias'));
@@ -45,7 +48,12 @@ const BuyerPersona = lazy(() => import('./pages/branding/BuyerPersona'));
 const Estrategias = lazy(() => import('./pages/branding/Estrategias'));
 const BrandingHub = lazy(() => import('./pages/branding/BrandingHub'));
 const PublicSurvey = lazy(() => import('./pages/PublicSurvey'));
-
+const MediaHub = lazy(() => import('./pages/media-suite/MediaHub'));
+const PhotoEditor = lazy(() => import('./pages/media-suite/PhotoEditor'));
+const DesignEditor = lazy(() => import('./pages/media-suite/DesignEditor'));
+const AudioEditor = lazy(() => import('./pages/media-suite/AudioEditor'));
+const VideoEditor = lazy(() => import('./pages/media-suite/VideoEditor'));
+const PdfEditor = lazy(() => import('./pages/media-suite/PdfEditor'));
 const PrivateRoute = ({ children }) => {
     const { user, activeEmpresa, loading } = useAuth();
     if (loading) return <FallbackLoader />;
@@ -150,6 +158,8 @@ function App() {
                             <Route path="/finanzas/cotizaciones-recibidas" element={<PrivateRoute><CotizacionesRecibidas /></PrivateRoute>} />
                             <Route path="/workflow-ai" element={<PrivateRouteNoLayout><WorkFlowAIDashboard /></PrivateRouteNoLayout>} />
                             <Route path="/almacenes" element={<PrivateRouteNoLayout><Almacenes /></PrivateRouteNoLayout>} />
+                            <Route path="/procesos" element={<PrivateRoute><ProcesosDashboard /></PrivateRoute>} />
+                            <Route path="/procesos/:id" element={<PrivateRoute><ProcesoDetail /></PrivateRoute>} />
                             <Route path="/branding" element={<PrivateRouteBrandingNoLayout><BrandingHub /></PrivateRouteBrandingNoLayout>} />
                             <Route path="/branding/paletas" element={<PrivateRouteBrandingNoLayout><Paletas /></PrivateRouteBrandingNoLayout>} />
                             <Route path="/branding/tipografias" element={<PrivateRouteBrandingNoLayout><Tipografias /></PrivateRouteBrandingNoLayout>} />
@@ -157,9 +167,16 @@ function App() {
                             <Route path="/branding/lineamientos" element={<PrivateRouteBrandingNoLayout><Lineamientos /></PrivateRouteBrandingNoLayout>} />
                             <Route path="/branding/buyer-persona" element={<PrivateRouteBrandingNoLayout><BuyerPersona /></PrivateRouteBrandingNoLayout>} />
                             <Route path="/branding/estrategias" element={<PrivateRouteBrandingNoLayout><Estrategias /></PrivateRouteBrandingNoLayout>} />
+                            <Route path="/media-suite" element={<PrivateRouteNoLayout><MediaHub /></PrivateRouteNoLayout>} />
+                            <Route path="/media-suite/photo" element={<PrivateRouteNoLayout><PhotoEditor /></PrivateRouteNoLayout>} />
+                            <Route path="/media-suite/design" element={<PrivateRouteNoLayout><DesignEditor /></PrivateRouteNoLayout>} />
+                            <Route path="/media-suite/audio" element={<PrivateRouteNoLayout><AudioEditor /></PrivateRouteNoLayout>} />
+                            <Route path="/media-suite/video" element={<PrivateRouteNoLayout><VideoEditor /></PrivateRouteNoLayout>} />
+                            <Route path="/media-suite/pdf" element={<PrivateRouteNoLayout><PdfEditor /></PrivateRouteNoLayout>} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                     </Suspense>
+                    <PWAInstallPrompt />
                     <Toaster position="top-right" richColors />
                 </Router>
             </RequestProvider>
