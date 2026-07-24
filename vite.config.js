@@ -34,8 +34,8 @@ export default defineConfig({
         name: "Artories Management Suite",
         short_name: "Artories",
         description: "Suite administrativa para gestión de proyectos y recursos",
-        theme_color: "#050505",
-        background_color: "#050505",
+        theme_color: "#0a0f1e",
+        background_color: "#0a0f1e",
         display: "standalone",
         orientation: "any",
         icons: [

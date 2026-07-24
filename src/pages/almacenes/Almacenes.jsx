@@ -2026,15 +2026,6 @@ const Almacenes = () => {
                 document.body
             )}
 
-            {/* FAB (Floating Action Button) para Registrar Movimiento Rápidamente */}
-            <button
-                onClick={() => { setIsMovimientoModalOpen(true); setMovimientoSearch(''); setNewMovimiento({ id: null, tipo: 'entrada', matriculaId: '', cantidad: '', nota: '' }); }}
-                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40 bg-amber-500 hover:bg-amber-400 text-black w-14 h-14 md:w-16 md:h-16 rounded-full shadow-[0_4px_20px_rgba(245,158,11,0.4)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 group"
-                title="Registrar Nuevo Movimiento"
-            >
-                <Plus size={28} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-300" />
-            </button>
-
             {isMovimientoModalOpen && createPortal(
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
@@ -2207,6 +2198,17 @@ const Almacenes = () => {
                 document.body
             )}
             </div>
+
+            {/* FAB (Floating Action Button) para Registrar Movimiento Rápidamente */}
+            <button
+                onClick={() => { setIsMovimientoModalOpen(true); setMovimientoSearch(''); setNewMovimiento({ id: null, tipo: 'entrada', matriculaId: '', cantidad: '', nota: '' }); }}
+                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-[100] bg-amber-500 hover:bg-amber-400 text-black w-14 h-14 md:w-16 md:h-16 rounded-full shadow-[0_4px_20px_rgba(245,158,11,0.4)] flex items-center justify-center transition-all hover:scale-105 active:scale-95 group"
+                title="Registrar Nuevo Movimiento"
+                style={{ position: 'fixed' }}
+            >
+                <Plus size={28} strokeWidth={2.5} className="group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+
         </div>
     );
 };
