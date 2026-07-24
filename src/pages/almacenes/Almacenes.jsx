@@ -381,7 +381,34 @@ const Almacenes = () => {
     const [deleteProductModal, setDeleteProductModal] = useState({ open: false, id: null });
     const [deleteMovimientoModal, setDeleteMovimientoModal] = useState({ open: false, id: null });
 
-    // Fetch data
+    // --- Hook para cerrar modales con el botón de "Atrás" (Android/PopState) ---
+    useEffect(() => {
+        const isAnyModalOpen = isCategoriaModalOpen || isProductModalOpen || isMovimientoModalOpen || deleteProductModal.open || deleteMovimientoModal.open || massUploadState.open || (movUploadState && movUploadState.showModal);
+        
+        if (isAnyModalOpen) {
+            window.history.pushState({ modalOpen: true }, '');
+            
+            const handlePopState = () => {
+                setIsCategoriaModalOpen(false);
+                setIsProductModalOpen(false);
+                setIsMovimientoModalOpen(false);
+                setDeleteProductModal(prev => ({ ...prev, open: false }));
+                setDeleteMovimientoModal(prev => ({ ...prev, open: false }));
+                setMassUploadState(prev => ({ ...prev, open: false }));
+                setMovUploadState(prev => ({ ...prev, showModal: false }));
+            };
+            
+            window.addEventListener('popstate', handlePopState);
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+                if (window.history.state && window.history.state.modalOpen) {
+                    window.history.back();
+                }
+            };
+        }
+    }, [isCategoriaModalOpen, isProductModalOpen, isMovimientoModalOpen, deleteProductModal.open, deleteMovimientoModal.open, massUploadState.open, movUploadState?.showModal]);
+
+    // Cleanup URLs when modal closes
     useEffect(() => {
         if (!activeEmpresa) return;
 
@@ -1888,8 +1915,8 @@ const Almacenes = () => {
 
             {/* Modals */}
             {isCategoriaModalOpen && createPortal(
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
+                <div onClick={() => setIsCategoriaModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div onClick={e => e.stopPropagation()} className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-bold mb-6">{newCategoria.id ? 'Editar Categoría' : 'Nueva Categoría'}</h3>
                         <form onSubmit={handleCreateCategoria} className="space-y-5">
                             <div>
@@ -1923,8 +1950,8 @@ const Almacenes = () => {
             )}
 
             {isProductModalOpen && createPortal(
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
+                <div onClick={() => setIsProductModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div onClick={e => e.stopPropagation()} className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-bold mb-6">{newProduct.id ? 'Editar Producto' : 'Registrar Nuevo Producto'}</h3>
                         <form onSubmit={handleCreateProduct} className="space-y-5">
                             <div>
@@ -1975,8 +2002,8 @@ const Almacenes = () => {
             )}
 
             {deleteProductModal.open && createPortal(
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-full max-w-sm p-6 rounded-3xl shadow-2xl bg-gray-900 border border-rose-900/50 relative">
+                <div onClick={() => setDeleteProductModal({ open: false, id: null })} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div onClick={e => e.stopPropagation()} className="w-full max-w-sm p-6 rounded-3xl shadow-2xl bg-gray-900 border border-rose-900/50 relative">
                         <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mb-4 mx-auto">
                             <Trash2 size={24} />
                         </div>
@@ -2001,8 +2028,8 @@ const Almacenes = () => {
             )}
 
             {deleteMovimientoModal.open && createPortal(
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-full max-w-sm p-6 rounded-3xl shadow-2xl bg-gray-900 border border-rose-900/50 relative">
+                <div onClick={() => setDeleteMovimientoModal({ open: false, id: null })} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div onClick={e => e.stopPropagation()} className="w-full max-w-sm p-6 rounded-3xl shadow-2xl bg-gray-900 border border-rose-900/50 relative">
                         <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mb-4 mx-auto">
                             <Trash2 size={24} />
                         </div>
@@ -2027,8 +2054,8 @@ const Almacenes = () => {
             )}
 
             {isMovimientoModalOpen && createPortal(
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
+                <div onClick={() => setIsMovimientoModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div onClick={e => e.stopPropagation()} className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-bold mb-6">Registrar Movimiento</h3>
                         <form onSubmit={handleCreateMovimiento} className="space-y-5">
                             <div>
@@ -2151,8 +2178,8 @@ const Almacenes = () => {
                 document.body
             )}
             {movUploadState.showModal && createPortal(
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-full max-w-lg p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-amber-500/50 relative max-h-[90vh] flex flex-col">
+                <div onClick={() => setMovUploadState(prev => ({ ...prev, showModal: false }))} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div onClick={e => e.stopPropagation()} className="w-full max-w-lg p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-amber-500/50 relative max-h-[90vh] flex flex-col">
                         <div className="flex items-center gap-3 mb-4 text-amber-500">
                             <AlertTriangle size={28} />
                             <h3 className="text-xl font-bold text-white">Duplicados Detectados</h3>
