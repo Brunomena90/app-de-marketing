@@ -121,7 +121,6 @@ export default function MediaHub() {
                             Envía recursos entre los diferentes módulos para crear contenido de forma conectada.
                         </p>
                     </div>
-                    </div>
                 </div>
 
                 {/* Banner de Descarga para Web */}
