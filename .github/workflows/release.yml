@@ -17,12 +17,12 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
           cache: 'npm'
 
       - name: Install Dependencies
@@ -30,20 +30,6 @@ jobs:
 
       - name: Build React and Electron
         run: npm run build
-
-      - name: Patch noble/hashes for electron-builder (Fix ESM bug)
-        run: |
-          $paths = @("node_modules/app-builder-lib/node_modules/@noble/hashes/package.json", "node_modules/@noble/hashes/package.json")
-          foreach ($file in $paths) {
-            if (Test-Path $file) {
-              $json = Get-Content $file -Raw | ConvertFrom-Json
-              if ($json.exports) {
-                $json.PSObject.Properties.Remove('exports')
-                $json | ConvertTo-Json -Depth 100 | Set-Content $file
-              }
-            }
-          }
-        shell: pwsh
 
       - name: Publish Release
         env:
