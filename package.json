@@ -111,5 +111,8 @@
         "releaseType": "release"
       }
     ]
+  },
+  "overrides": {
+    "@noble/hashes": "1.3.3"
   }
 }
