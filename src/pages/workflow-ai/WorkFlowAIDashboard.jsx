@@ -518,7 +518,12 @@ export default function WorkFlowAIDashboard() {
             const finalMessages = [...newMessages, aiMsg];
             setMessages(finalMessages);
             await updateDoc(doc(db, 'workflow_ai_chats', currentId), { messages: finalMessages, updatedAt: serverTimestamp() });
-        } catch (err) { toast.error('Error al procesar mensaje'); } finally { setIsLoading(false); }
+        } catch (err) { 
+            console.error('WorkFlowAIDashboard handleSend Error:', err);
+            toast.error('Error al procesar mensaje: ' + (err.message || 'Desconocido')); 
+        } finally { 
+            setIsLoading(false); 
+        }
     };
 
     const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };

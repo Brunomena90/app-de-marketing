@@ -201,7 +201,7 @@ const Almacenes = () => {
     const [isChartProductSearchOpen, setIsChartProductSearchOpen] = useState(false);
     
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-    const [newProduct, setNewProduct] = useState({ id: null, matricula: '', nombre: '', categoria: '', precio: 0, precioVenta: 0, stockMinimo: 0 });
+    const [newProduct, setNewProduct] = useState({ id: null, matricula: '', nombre: '', categoria: '', precio: 0, precioVenta: 0, stockMinimo: 0, esServicio: false, itemsServicio: [] });
     const alertedProductsRef = useRef({});
 
     const currentYear = new Date().getFullYear();
@@ -232,11 +232,9 @@ const Almacenes = () => {
     const [massUploadState, setMassUploadState] = useState({ open: false, pendingProducts: [], conflicts: [] });
     const fileInputRef = useRef(null);
 
-    // Estado y Referencia para la Carga Masiva de Movimientos
     const [movUploadState, setMovUploadState] = useState({ open: false, pending: [], conflicts: [], showModal: false });
     const movFileInputRef = useRef(null);
 
-    // Gestos táctiles (Swipe left/right en móvil para cambiar pestañas)
     const tabsList = ['movimientos', 'balance', 'productos', 'categorias', 'dashboard'];
     const touchStateRef = useRef({ startX: 0, startY: 0, endX: 0, endY: 0, disabled: false });
 
@@ -306,7 +304,6 @@ const Almacenes = () => {
                 });
             }
         });
-        // Agregar huérfanos por si acaso
         categorias.forEach(c => {
             if (!result.find(r => r.id === c.id)) {
                 const parentExists = categorias.some(p => p.id === c.parentId);
@@ -381,7 +378,6 @@ const Almacenes = () => {
     const [deleteProductModal, setDeleteProductModal] = useState({ open: false, id: null });
     const [deleteMovimientoModal, setDeleteMovimientoModal] = useState({ open: false, id: null });
 
-    // --- Hook para cerrar modales con el botón de "Atrás" (Android/PopState) ---
     useEffect(() => {
         const isAnyModalOpen = isCategoriaModalOpen || isProductModalOpen || isMovimientoModalOpen || deleteProductModal.open || deleteMovimientoModal.open || massUploadState.open || (movUploadState && movUploadState.showModal);
         
@@ -408,7 +404,6 @@ const Almacenes = () => {
         }
     }, [isCategoriaModalOpen, isProductModalOpen, isMovimientoModalOpen, deleteProductModal.open, deleteMovimientoModal.open, massUploadState.open, movUploadState?.showModal]);
 
-    // Cleanup URLs when modal closes
     useEffect(() => {
         if (!activeEmpresa) return;
 
@@ -430,7 +425,6 @@ const Almacenes = () => {
             setCategorias(data);
         });
 
-        // Request Notification Permission on mount
         if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
             Notification.requestPermission();
         }
@@ -442,7 +436,6 @@ const Almacenes = () => {
         };
     }, [activeEmpresa]);
 
-    // Categories Handlers
     const handleCreateCategoria = async (e) => {
         e.preventDefault();
         if (!newCategoria.nombre) {
@@ -495,49 +488,37 @@ const Almacenes = () => {
         }
     };
 
-    // Products Handlers
     const handleCreateProduct = async (e) => {
         e.preventDefault();
-        if (!newProduct.matricula) {
-            toast.error('La matrícula es obligatoria');
+        
+        if (!newProduct.nombre || !newProduct.categoria || newProduct.precioVenta < 0) {
+            toast.error('Nombre, categoría y precio de venta son requeridos');
             return;
         }
 
-        if (!/\d/.test(newProduct.matricula)) {
-            toast.error('La matrícula (código) debe contener al menos un número');
-            return;
-        }
+        const productData = {
+            matricula: newProduct.matricula || '',
+            nombre: newProduct.nombre,
+            categoria: newProduct.categoria,
+            precio: Number(newProduct.precio) || 0,
+            precioVenta: Number(newProduct.precioVenta) || 0,
+            stockMinimo: newProduct.esServicio ? 0 : (Number(newProduct.stockMinimo) || 0),
+            esServicio: newProduct.esServicio || false,
+            itemsServicio: newProduct.esServicio ? (newProduct.itemsServicio || []) : [],
+            empresa: activeEmpresa
+        };
+
         try {
-            const safePrecio = parseFloat(newProduct.precio) || 0;
-            const safePrecioVenta = parseFloat(newProduct.precioVenta) || 0;
-            const safeMinimo = parseInt(newProduct.stockMinimo, 10) || 0;
-
             if (newProduct.id) {
                 const productRef = doc(db, 'almacen_productos', newProduct.id);
-                await updateDoc(productRef, {
-                    matricula: newProduct.matricula,
-                    nombre: newProduct.nombre || '',
-                    categoria: newProduct.categoria,
-                    precio: safePrecio,
-                    precioVenta: safePrecioVenta,
-                    stockMinimo: safeMinimo
-                });
+                await updateDoc(productRef, productData);
                 toast.success('Producto actualizado correctamente');
             } else {
-                await addDoc(collection(db, 'almacen_productos'), {
-                    matricula: newProduct.matricula,
-                    nombre: newProduct.nombre || '',
-                    categoria: newProduct.categoria,
-                    precio: safePrecio,
-                    precioVenta: safePrecioVenta,
-                    stockMinimo: safeMinimo,
-                    empresa: activeEmpresa,
-                    createdAt: serverTimestamp()
-                });
+                await addDoc(collection(db, 'almacen_productos'), { ...productData, createdAt: serverTimestamp() });
                 toast.success('Producto registrado correctamente');
             }
             setIsProductModalOpen(false);
-            setNewProduct({ id: null, matricula: '', nombre: '', categoria: '', precio: 0, precioVenta: 0, stockMinimo: 0 });
+            setNewProduct({ id: null, matricula: '', nombre: '', categoria: '', precio: 0, precioVenta: 0, stockMinimo: 0, esServicio: false, itemsServicio: [] });
         } catch (error) {
             toast.error('Error al guardar producto');
             console.error(error);
@@ -553,7 +534,6 @@ const Almacenes = () => {
         setDeleteProductModal({ open: true, id });
     };
 
-    // Movements Handlers
     const handleCreateMovimiento = async (e) => {
         e.preventDefault();
         
@@ -568,27 +548,26 @@ const Almacenes = () => {
             return;
         }
 
-        // VALIDACIÓN DE STOCK PARA SALIDAS
         if (newMovimiento.tipo === 'salida') {
-            let stockActual = 0;
-            movimientos.forEach(m => {
-                if (m.matriculaId === newMovimiento.matriculaId) {
-                    if (m.tipo === 'entrada') stockActual += m.cantidad;
-                    else if (m.tipo === 'salida') stockActual -= m.cantidad;
+            const product = productos.find(p => p.id === newMovimiento.matriculaId);
+            if (!product?.esServicio) {
+                let stockActual = 0;
+                movimientos.forEach(m => {
+                    if (m.matriculaId === newMovimiento.matriculaId) {
+                        if (m.tipo === 'entrada') stockActual += m.cantidad;
+                        else if (m.tipo === 'salida') stockActual -= m.cantidad;
+                    }
+                });
+                if (newMovimiento.id) {
+                    const oldMov = movimientos.find(m => m.id === newMovimiento.id);
+                    if (oldMov && oldMov.tipo === 'salida') {
+                        stockActual += oldMov.cantidad;
+                    }
                 }
-            });
-            
-            // Si es edición, ignorar su propia cantidad para el balance temporal
-            if (newMovimiento.id) {
-                const oldMov = movimientos.find(m => m.id === newMovimiento.id);
-                if (oldMov && oldMov.tipo === 'salida') {
-                    stockActual += oldMov.cantidad;
+                if (parsedCantidad > stockActual) {
+                    toast.error(`No hay stock suficiente. Stock disponible: ${stockActual}`);
+                    return;
                 }
-            }
-
-            if (parsedCantidad > stockActual) {
-                toast.error(`No hay stock suficiente. Stock disponible: ${stockActual}`);
-                return;
             }
         }
 
@@ -607,7 +586,6 @@ const Almacenes = () => {
             const currentPrecioVenta = relatedProduct ? (relatedProduct.precioVenta || 0) : 0;
 
             if (newMovimiento.id) {
-                // UPDATE
                 const movRef = doc(db, 'almacen_movimientos', newMovimiento.id);
                 await updateDoc(movRef, {
                     tipo: newMovimiento.tipo,
@@ -617,7 +595,6 @@ const Almacenes = () => {
                 });
                 toast.success('Movimiento actualizado');
             } else {
-                // CREATE
                 await addDoc(collection(db, 'almacen_movimientos'), {
                     tipo: newMovimiento.tipo,
                     matriculaId: newMovimiento.matriculaId,
@@ -633,7 +610,6 @@ const Almacenes = () => {
                 toast.success('Movimiento registrado correctamente');
             }
             
-            // RESET
             setIsMovimientoModalOpen(false);
             setNewMovimiento({ id: null, tipo: 'entrada', matriculaId: '', cantidad: '', nota: '' });
             setMovimientoSearch('');
@@ -673,14 +649,13 @@ const Almacenes = () => {
 
     const balances = getBalanceByProduct();
 
-    // NOTIFICATION ALERT LOGIC
     useEffect(() => {
         const currentAlerts = { ...alertedProductsRef.current };
         let hasNewAlert = false;
 
         balances.forEach(b => {
+            if (b.esServicio) return;
             const minStock = Number(b.stockMinimo) || 0;
-            // Only trigger alert if stock is <= minimum AND stock is not negative (meaning it's a real low stock scenario)
             if (minStock > 0 && b.stock <= minStock && b.stock >= 0) {
                 if (currentAlerts[b.id] !== b.stock) {
                     currentAlerts[b.id] = b.stock;
@@ -723,7 +698,6 @@ const Almacenes = () => {
         }
     }, [balances]);
 
-    // DASHBOARD LOGIC
     const getDashboardFilteredMovimientos = () => {
         if (!isFilterActive) return movimientos;
         return movimientos.filter(m => {
@@ -918,7 +892,7 @@ const Almacenes = () => {
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'Catálogo de Productos');
-            XLSX.writeFile(wb, `Reporte_Catalogo_Productos_${new Date().getTime()}.xlsx`);
+            XLSX.writeFile(wb, `Reporte_Catálogo_Productos_${new Date().getTime()}.xlsx`);
             toast.success('Reporte Excel de productos descargado correctamente');
         } catch (error) {
             toast.error('Error al exportar productos a Excel');
@@ -979,11 +953,9 @@ const Almacenes = () => {
 
     const handleConfirmMassUpload = async () => {
         const { pendingProducts, conflicts } = massUploadState;
-        // Proceed with all pending and conflicts
         await processMassUpload([...pendingProducts, ...conflicts]);
     };
 
-    // --- LÓGICA DE CARGA MASIVA DE EXCEL PARA MOVIMIENTOS ---
     const handleMovFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -1066,7 +1038,6 @@ const Almacenes = () => {
                         if (!mDate || isNaN(mDate.getTime())) return false;
                         
                         const diffTime = Math.abs(dateToUse.getTime() - mDate.getTime());
-                        // Tolerancia de 2 minutos para considerar duplicado
                         return diffTime < 120000;
                     });
 
@@ -1133,7 +1104,6 @@ const Almacenes = () => {
             toast.error('Error registrando los movimientos masivos.', { id: loadingToast });
         }
     };
-    // --- FIN LÓGICA DE CARGA MASIVA DE EXCEL PARA MOVIMIENTOS ---
 
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
@@ -1235,12 +1205,9 @@ const Almacenes = () => {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white relative flex justify-center isolate">
-            
-            {/* Background effects */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-[#050505] to-[#050505] pointer-events-none" />
 
             <div className="w-full max-w-7xl p-4 md:p-8 relative z-10">
-                {/* Navigation Bar / Return to App Center */}
             <div className="relative z-10 flex items-center justify-between mb-8">
                 <button 
                     onClick={() => navigate('/')} 
@@ -1259,7 +1226,6 @@ const Almacenes = () => {
                 )}
             </div>
 
-            {/* Header */}
             <div className="relative z-10 mb-8 md:mb-10 text-center md:text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-4 bg-gray-900 border-amber-500/30 text-amber-400 shadow-md">
                     <Package size={14} />
@@ -1270,7 +1236,6 @@ const Almacenes = () => {
                 </h1>
             </div>
 
-            {/* Tabs (Responsive horizontal scroll) */}
             <div className="relative z-10 mb-8 w-full overflow-x-auto hide-scrollbar pb-2">
                 <div className="flex gap-2 p-1.5 rounded-2xl w-max bg-gray-900/90 border border-white/10 shadow-lg">
                     {[
@@ -1295,7 +1260,6 @@ const Almacenes = () => {
                 </div>
             </div>
 
-            {/* Tab Contents (Soporta deslizamiento táctil / Swipe para cambiar pestañas) */}
             <div 
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -1304,7 +1268,6 @@ const Almacenes = () => {
             >
                 {activeTab === 'dashboard' && (
                     <div className="space-y-6">
-                        {/* Filters and Export */}
                         <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center p-4 md:p-6 rounded-3xl border bg-gray-900 border-white/10 shadow-md [transform:translateZ(0)]">
                             <div className="flex flex-col sm:flex-row items-end gap-4 w-full md:w-auto">
                                 <label className="flex items-center gap-3 cursor-pointer h-10 px-4 rounded-xl bg-gray-900 border border-white/10 hover:border-amber-500/50 transition-colors">
@@ -1399,7 +1362,6 @@ const Almacenes = () => {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-6">
-                            {/* Gráfica Circular de Ventas por Categoría */}
                             <div className="p-4 md:p-6 rounded-3xl border bg-gray-900 border-white/10 shadow-md [transform:translateZ(0)]">
                                 <div className="w-full h-full">
                                     <h2 className="text-base md:text-lg font-bold mb-6 flex items-center gap-2 break-words">
@@ -1449,7 +1411,6 @@ const Almacenes = () => {
                                 </div>
                             </div>
 
-                            {/* Gráfica de Tendencia de Costos */}
                             <div className="p-4 md:p-6 rounded-3xl border bg-gray-900 border-white/10 shadow-md [transform:translateZ(0)]">
                                 <div className="w-full h-full">
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -1557,7 +1518,7 @@ const Almacenes = () => {
                                     <Download size={16} /> Exportar Leyenda
                                 </button>
                                 <button 
-                                    onClick={() => { setNewProduct({ id: null, matricula: '', nombre: '', categoria: '', precio: 0 }); setIsProductModalOpen(true); }}
+                                    onClick={() => { setNewProduct({ id: null, matricula: '', nombre: '', categoria: '', precio: 0, precioVenta: 0, stockMinimo: 0, esServicio: false }); setIsProductModalOpen(true); }}
                                     className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-white px-4 py-3 md:py-2 rounded-xl font-bold flex items-center justify-center gap-2 text-sm transition-colors"
                                 >
                                     <Plus size={16} /> Nuevo Producto
@@ -1565,7 +1526,6 @@ const Almacenes = () => {
                             </div>
                         </div>
 
-                        {/* Mobile View */}
                         <div className="md:hidden space-y-4">
                             {productos.map(p => (
                                 <div key={p.id} className="bg-[#12141a] p-4 rounded-2xl border border-white/10 relative">
@@ -1589,7 +1549,6 @@ const Almacenes = () => {
                             )}
                         </div>
 
-                        {/* Desktop View */}
                         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 hidden md:block">
                             <table className="w-full min-w-[500px] text-left text-sm">
                                 <thead>
@@ -1597,7 +1556,7 @@ const Almacenes = () => {
                                         <th className="pb-3 font-semibold">Matrícula (SKU)</th>
                                         <th className="pb-3 font-semibold">Nombre</th>
                                         <th className="pb-3 font-semibold">Categoría</th>
-                                        <th className="pb-3 font-semibold">Precio Base</th>
+                                        <th className="pb-3 font-semibold">Costo</th>
                                         <th className="pb-3 font-semibold">Precio Venta</th>
                                         <th className="pb-3 font-semibold text-right">Acciones</th>
                                     </tr>
@@ -1641,7 +1600,6 @@ const Almacenes = () => {
                             </button>
                         </div>
 
-                        {/* Mobile View */}
                         <div className="md:hidden space-y-4">
                             {getCategoryHierarchy(true).map(c => (
                                 <div key={c.id} className={`bg-[#12141a] p-4 rounded-2xl border border-white/10 relative ${c.level === 2 ? 'ml-6' : c.level === 3 ? 'ml-12' : ''}`}>
@@ -1665,7 +1623,6 @@ const Almacenes = () => {
                             )}
                         </div>
 
-                        {/* Desktop View */}
                         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 hidden md:block">
                             <table className="w-full min-w-[500px] text-left text-sm">
                                 <thead>
@@ -1744,7 +1701,6 @@ const Almacenes = () => {
                             </div>
                         </div>
 
-                        {/* Mobile View */}
                         <div className="md:hidden space-y-4">
                             {movimientos.map(m => {
                                 const prod = productos.find(p => p.id === m.matriculaId);
@@ -1780,7 +1736,6 @@ const Almacenes = () => {
                             )}
                         </div>
 
-                        {/* Desktop View */}
                         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 hidden md:block">
                             <table className="w-full min-w-[600px] text-left text-sm">
                                 <thead>
@@ -1840,9 +1795,9 @@ const Almacenes = () => {
                 {activeTab === 'balance' && (
                     <div className="p-4 md:p-6 rounded-3xl border bg-gray-900/90 border-white/10 shadow-md">
                         <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 mb-6"><BarChart3 className="text-emerald-500 shrink-0"/> Balance de Inventarios</h2>
-                        {/* Mobile View */}
                         <div className="md:hidden space-y-4">
                             {getBalanceByProduct().map(b => {
+                                if (b.esServicio) return null;
                                 const minimo = Number(b.stockMinimo) || 0;
                                 const isCritical = minimo > 0 && b.stock <= minimo;
                                 const stockColor = b.stock < 0 ? 'text-rose-500' : isCritical ? 'text-orange-400' : b.stock === 0 ? 'text-gray-500' : 'text-emerald-400';
@@ -1871,7 +1826,6 @@ const Almacenes = () => {
                             )}
                         </div>
 
-                        {/* Desktop View */}
                         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 hidden md:block">
                             <table className="w-full min-w-[600px] text-left text-sm">
                                 <thead>
@@ -1885,6 +1839,7 @@ const Almacenes = () => {
                                 </thead>
                                 <tbody>
                                     {balances.map(b => {
+                                        if (b.esServicio) return null;
                                         const minimo = Number(b.stockMinimo) || 0;
                                         const isCritical = minimo > 0 && b.stock <= minimo;
                                         const stockColor = b.stock < 0 ? 'text-rose-500' : isCritical ? 'text-orange-400 font-black' : '';
@@ -1913,7 +1868,6 @@ const Almacenes = () => {
                 )}
             </div>
 
-            {/* Modals */}
             {isCategoriaModalOpen && createPortal(
                 <div onClick={() => setIsCategoriaModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div onClick={e => e.stopPropagation()} className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
@@ -1951,46 +1905,129 @@ const Almacenes = () => {
 
             {isProductModalOpen && createPortal(
                 <div onClick={() => setIsProductModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div onClick={e => e.stopPropagation()} className="w-full max-w-md p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
+                    <div onClick={e => e.stopPropagation()} className="w-full max-w-lg p-6 md:p-8 rounded-3xl shadow-2xl bg-gray-900 border border-gray-800 relative max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-bold mb-6">{newProduct.id ? 'Editar Producto' : 'Registrar Nuevo Producto'}</h3>
                         <form onSubmit={handleCreateProduct} className="space-y-5">
-                            <div>
-                                <label className="block text-xs font-bold uppercase mb-2 text-gray-400">Matrícula (Código Único)</label>
-                                <input type="text" required value={newProduct.matricula} onChange={e => setNewProduct({...newProduct, matricula: e.target.value.toUpperCase()})} className="w-full px-4 py-3.5 rounded-xl border outline-none font-mono bg-gray-800 border-gray-700 text-white focus:border-amber-500" placeholder="Ej: PROD-001" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold uppercase mb-2 text-gray-400">Nombre del Producto (Opcional)</label>
-                                <input type="text" value={newProduct.nombre} onChange={e => setNewProduct({...newProduct, nombre: e.target.value})} className="w-full px-4 py-3.5 rounded-xl border outline-none bg-gray-800 border-gray-700 text-white focus:border-amber-500" placeholder="Nombre descriptivo" />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase mb-2 text-gray-400">Categoría</label>
-                                    <CategoryTreeSelect 
-                                        categorias={categorias}
-                                        value={newProduct.categoria}
-                                        onChange={(val) => {
-                                            let newMatricula = newProduct.matricula;
-                                            if (val !== newProduct.categoria) {
-                                                newMatricula = generateSKU(val);
-                                            }
-                                            setNewProduct({...newProduct, categoria: val, matricula: newMatricula});
-                                        }}
-                                        valueField="nombre"
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-xs font-bold text-white/50 uppercase tracking-wider">¿Es un Servicio?</label>
+                                    <label className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors w-fit">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={newProduct.esServicio || false}
+                                            onChange={(e) => setNewProduct({ ...newProduct, esServicio: e.target.checked })}
+                                            className="w-5 h-5 rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-900"
+                                        />
+                                        <span className="text-sm text-white/80 font-medium">Este ítem es un servicio (no requiere stock)</span>
+                                    </label>
+                                    
+                                    {newProduct.esServicio && (
+                                        <div className="mt-4 p-4 border border-indigo-500/20 bg-indigo-500/5 rounded-xl animate-in fade-in slide-in-from-top-2">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-xs font-bold uppercase text-indigo-400">Ítems del Servicio</label>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        const items = newProduct.itemsServicio || [];
+                                                        setNewProduct({ ...newProduct, itemsServicio: [...items, ''] });
+                                                    }}
+                                                    className="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded hover:bg-indigo-500 hover:text-white transition-colors"
+                                                >
+                                                    + Añadir Ítem
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                                {(newProduct.itemsServicio || []).map((item, index) => (
+                                                    <div key={index} className="flex items-start gap-2">
+                                                        <span className="text-indigo-400 mt-2 text-sm font-bold">•</span>
+                                                        <textarea
+                                                            value={item}
+                                                            onChange={(e) => {
+                                                                const newItems = [...(newProduct.itemsServicio || [])];
+                                                                newItems[index] = e.target.value;
+                                                                setNewProduct({ ...newProduct, itemsServicio: newItems });
+                                                            }}
+                                                            rows="1"
+                                                            className="flex-1 px-3 py-2 rounded-lg border outline-none bg-gray-900 border-gray-700 text-white focus:border-indigo-500 resize-none text-sm"
+                                                            placeholder="Descripción del ítem..."
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newItems = (newProduct.itemsServicio || []).filter((_, i) => i !== index);
+                                                                setNewProduct({ ...newProduct, itemsServicio: newItems });
+                                                            }}
+                                                            className="mt-1 p-1.5 text-gray-500 hover:text-rose-500 transition-colors"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {(!newProduct.itemsServicio || newProduct.itemsServicio.length === 0) && (
+                                                    <div className="text-xs text-indigo-400/50 italic text-center py-2">
+                                                        No hay ítems agregados.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase text-gray-400">Matrícula (Código Único)</label>
+                                    <input 
+                                        type="text" 
+                                        value={newProduct.matricula} 
+                                        readOnly
+                                        className="w-full px-4 py-2.5 rounded-xl border outline-none font-mono bg-gray-900 border-gray-800 text-gray-500 cursor-not-allowed" 
+                                        placeholder="Automático" 
                                     />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase text-gray-400">Nombre del Producto</label>
+                                    <input type="text" required value={newProduct.nombre} onChange={e => setNewProduct({...newProduct, nombre: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border outline-none bg-gray-800 border-gray-700 text-white focus:border-amber-500" placeholder="Nombre..." />
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase text-gray-400">Categoría</label>
+                                <CategoryTreeSelect 
+                                    categorias={categorias}
+                                    value={newProduct.categoria}
+                                    onChange={(val) => {
+                                        let newMatricula = newProduct.matricula;
+                                        if (val !== newProduct.categoria) {
+                                            newMatricula = generateSKU(val);
+                                        }
+                                        setNewProduct({...newProduct, categoria: val, matricula: newMatricula});
+                                    }}
+                                    valueField="nombre"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-xs font-bold uppercase mb-2 text-gray-400">Precio Ref.</label>
-                                    <input type="number" step="0.01" value={newProduct.precio} onChange={e => setNewProduct({...newProduct, precio: e.target.value})} className="w-full px-4 py-3.5 rounded-xl border outline-none bg-gray-800 border-gray-700 text-white focus:border-amber-500" />
+                                    <label className="block text-xs font-bold uppercase mb-2 text-gray-400">Precio de Costo</label>
+                                    <input type="number" step="0.01" value={newProduct.precio} onChange={e => setNewProduct({...newProduct, precio: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border outline-none bg-gray-800 border-gray-700 text-white focus:border-amber-500" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold uppercase mb-2 text-emerald-400">Precio Venta</label>
-                                    <input type="number" step="0.01" value={newProduct.precioVenta || ''} onChange={e => setNewProduct({...newProduct, precioVenta: e.target.value})} className="w-full px-4 py-3.5 rounded-xl border outline-none bg-gray-800 border-gray-700 text-white focus:border-emerald-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase mb-2 text-rose-400 flex items-center gap-1"><Tags size={12}/> Min. Alerta</label>
-                                    <input type="number" min="0" value={newProduct.stockMinimo || 0} onChange={e => setNewProduct({...newProduct, stockMinimo: e.target.value})} className="w-full px-4 py-3.5 rounded-xl border outline-none bg-gray-800 border-gray-700 text-white focus:border-rose-500" />
+                                    <input type="number" step="0.01" value={newProduct.precioVenta || ''} onChange={e => setNewProduct({...newProduct, precioVenta: e.target.value})} className="w-full px-4 py-2.5 rounded-xl border outline-none bg-gray-800 border-gray-700 text-white focus:border-emerald-500" />
                                 </div>
                             </div>
+
+                            {!newProduct.esServicio && (
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-white/50 uppercase tracking-wider">Stock Mínimo</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={newProduct.stockMinimo || 0}
+                                        onChange={e => setNewProduct({ ...newProduct, stockMinimo: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:border-indigo-500 transition-colors"
+                                    />
+                                </div>
+                            )}
+
                             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6">
                                 <button type="button" onClick={() => setIsProductModalOpen(false)} className="w-full sm:flex-1 py-3.5 rounded-xl font-bold transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700">Cancelar</button>
                                 <button type="submit" className="w-full sm:flex-1 py-3.5 rounded-xl font-bold bg-amber-500 hover:bg-amber-400 text-white transition-colors">Guardar Producto</button>

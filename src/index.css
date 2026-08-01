@@ -288,6 +288,15 @@
   stroke: #2a2a2a !important;
 }
 
+/* Utilities for scrollbar hiding */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
 /* Custom Scrollbars for Dark Mode (Global) */
 ::-webkit-scrollbar {
   width: 10px;

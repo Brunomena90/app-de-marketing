@@ -101,19 +101,19 @@ const ProcesosDashboard = () => {
     );
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-gray-50 relative overflow-hidden">
+        <div className="flex-1 flex flex-col h-full bg-gray-50 dark:bg-[#050505] relative overflow-hidden transition-colors">
             {/* Decoración de fondo */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
 
             {/* Header */}
-            <header className="relative z-10 shrink-0 px-8 py-6 border-b border-gray-200 bg-white/90 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <header className="relative z-10 shrink-0 px-8 py-6 border-b border-gray-200 dark:border-white/10 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
                         <GitMerge size={24} className="text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Gestión de Procesos</h1>
+                        <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Gestión de Procesos</h1>
                         <p className="text-xs text-cyan-600 font-bold uppercase tracking-widest mt-1">
                             Análisis AS-IS / TO-BE
                         </p>
@@ -128,7 +128,7 @@ const ProcesosDashboard = () => {
                             placeholder="Buscar proceso..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full sm:w-64 bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                            className="w-full sm:w-64 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
                         />
                     </div>
                     <button
@@ -149,11 +149,11 @@ const ProcesosDashboard = () => {
                     </div>
                 ) : filteredProcesos.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <Settings2 size={32} className="text-gray-500" />
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                            <Settings2 size={32} className="text-gray-500 dark:text-gray-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">No hay procesos</h3>
-                        <p className="text-gray-500 text-sm max-w-md">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No hay procesos</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-md">
                             No se encontraron procesos en la empresa activa. Crea uno nuevo para comenzar a documentar el AS-IS y TO-BE.
                         </p>
                         <button
@@ -169,7 +169,7 @@ const ProcesosDashboard = () => {
                             <Link
                                 key={proceso.id}
                                 to={`/procesos/${proceso.id}`}
-                                className="group bg-white border border-gray-200 rounded-2xl p-6 hover:bg-gray-50 hover:border-cyan-500/50 transition-all duration-300 relative overflow-hidden flex flex-col"
+                                className="group bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-2xl p-6 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 transition-all duration-300 relative overflow-hidden flex flex-col"
                             >
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-cyan-500/10 to-transparent rounded-bl-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
                                 
@@ -178,20 +178,20 @@ const ProcesosDashboard = () => {
                                         <LayoutGrid size={20} />
                                     </div>
                                     {activeEmpresa === 'Todas' && (
-                                        <span className="text-[10px] font-bold bg-gray-100 px-2 py-1 rounded-full text-gray-600 truncate max-w-[100px]">
+                                        <span className="text-[10px] font-bold bg-gray-100 dark:bg-white/10 px-2 py-1 rounded-full text-gray-600 dark:text-gray-400 truncate max-w-[100px]">
                                             {proceso.empresa}
                                         </span>
                                     )}
                                 </div>
                                 
-                                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-cyan-600 transition-colors">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 group-hover:text-cyan-600 transition-colors">
                                     {proceso.name}
                                 </h3>
-                                <p className="text-sm text-gray-500 line-clamp-3 mb-6 flex-1">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 mb-6 flex-1">
                                     {proceso.description || "Sin descripción"}
                                 </p>
                                 
-                                <div className="flex items-center gap-4 text-xs font-medium text-gray-500 mt-auto border-t border-gray-200 pt-4">
+                                <div className="flex items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400 mt-auto border-t border-gray-200 dark:border-white/10 pt-4">
                                     <div className="flex items-center gap-1.5">
                                         <Clock size={14} />
                                         <span>
@@ -218,45 +218,45 @@ const ProcesosDashboard = () => {
             {/* Modal de Creación */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-                        <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <div className="p-6 border-b border-gray-200 dark:border-white/10">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <Plus className="text-cyan-600" /> Nuevo Proceso
                             </h2>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 Define la información básica del proceso para documentarlo.
                             </p>
                         </div>
                         
                         <form onSubmit={handleCreateProceso} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Nombre del Proceso <span className="text-red-500">*</span></label>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2">Nombre del Proceso <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     required
                                     value={newProcesoName}
                                     onChange={(e) => setNewProcesoName(e.target.value)}
-                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-cyan-500 transition-colors"
+                                    className="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:border-cyan-500 transition-colors"
                                     placeholder="Ej. Onboarding de Clientes"
                                 />
                             </div>
                             
                             <div>
-                                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Descripción Corta</label>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2">Descripción Corta</label>
                                 <textarea
                                     rows="3"
                                     value={newProcesoDesc}
                                     onChange={(e) => setNewProcesoDesc(e.target.value)}
-                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:border-cyan-500 transition-colors resize-none"
+                                    className="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:border-cyan-500 transition-colors resize-none"
                                     placeholder="¿De qué trata este proceso?"
                                 />
                             </div>
                             
-                            <div className="flex gap-3 pt-4 border-t border-gray-200 mt-6">
+                            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-white/10 mt-6">
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
-                                    className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 font-medium transition-colors"
+                                    className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 font-medium transition-colors"
                                 >
                                     Cancelar
                                 </button>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, onSnapshot, query, orderBy, deleteDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
-import { TrendingDown, Search, Plus, Trash2, Calendar, FileText, CheckCircle2 } from 'lucide-react';
+import { TrendingDown, Search, Plus, Trash2, Calendar, FileText, CheckCircle2, Clock } from 'lucide-react';
 
 const Egresos = () => {
     const { activeEmpresa, user } = useAuth();
@@ -18,7 +18,8 @@ const Egresos = () => {
         amount: '',
         category: 'Operativo',
         date: new Date().toISOString().split('T')[0],
-        notes: ''
+        notes: '',
+        status: 'Pagado'
     });
 
     useEffect(() => {
@@ -52,9 +53,21 @@ const Egresos = () => {
             });
             toast.success('Gasto registrado exitosamente');
             setIsModalOpen(false);
-            setForm({ title: '', amount: '', category: 'Operativo', date: new Date().toISOString().split('T')[0], notes: '' });
+            setForm({ title: '', amount: '', category: 'Operativo', date: new Date().toISOString().split('T')[0], notes: '', status: 'Pagado' });
         } catch (error) {
             toast.error('Error al registrar el gasto');
+        }
+    };
+
+    const handleToggleStatus = async (id, currentStatus) => {
+        try {
+            const newStatus = currentStatus === 'Pagado' ? 'Pendiente' : 'Pagado';
+            await updateDoc(doc(db, 'finanzas_egresos', id), {
+                status: newStatus
+            });
+            toast.success(`Estado actualizado a ${newStatus}`);
+        } catch (error) {
+            toast.error('Error al actualizar el estado');
         }
     };
 
@@ -77,7 +90,7 @@ const Egresos = () => {
     const totalEgresos = filteredEgresos.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10">
             <div className="flex flex-col md:flex-row justify-between gap-4 items-end">
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
@@ -122,6 +135,7 @@ const Egresos = () => {
                             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-bold">
                                 <th className="p-4">Concepto / Categoría</th>
                                 <th className="p-4">Fecha</th>
+                                <th className="p-4">Estado</th>
                                 <th className="p-4">Monto</th>
                                 <th className="p-4">Notas</th>
                                 <th className="p-4 text-right">Acciones</th>
@@ -151,6 +165,19 @@ const Egresos = () => {
                                         <td className="p-4">
                                             <span className="flex items-center gap-1.5 text-sm text-slate-600 font-medium">
                                                 <Calendar size={14} className="text-slate-400" /> {egreso.date}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <span 
+                                                onClick={() => handleToggleStatus(egreso.id, egreso.status || 'Pagado')}
+                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-all border ${
+                                                    (egreso.status || 'Pagado') === 'Pagado' 
+                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' 
+                                                        : 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
+                                                }`}
+                                            >
+                                                {(egreso.status || 'Pagado') === 'Pagado' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                                                {egreso.status || 'Pagado'}
                                             </span>
                                         </td>
                                         <td className="p-4 font-black text-rose-600">
@@ -206,6 +233,13 @@ const Egresos = () => {
                                     <option value="Software">Licencias Software</option>
                                     <option value="Marketing">Marketing / Pauta</option>
                                     <option value="Otros">Otros</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado del Pago</label>
+                                <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-rose-200">
+                                    <option value="Pagado">Pagado (Afecta flujo de caja)</option>
+                                    <option value="Pendiente">Pendiente (Cuenta por pagar)</option>
                                 </select>
                             </div>
                             <div>

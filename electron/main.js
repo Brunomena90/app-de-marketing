@@ -2,6 +2,8 @@ import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
+import os from 'os';
 import { setupAIManager } from './aiManager.js';
 import { autoUpdater } from 'electron-updater';
 
@@ -10,10 +12,33 @@ const __dirname = path.dirname(__filename);
 
 // Ensure app only runs one instance
 const gotTheLock = app.requestSingleInstanceLock();
+let fileToOpen = null;
+
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  fileToOpen = filePath;
+  // If mainWindow is already created, send it immediately
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win && win.webContents) {
+    win.webContents.send('external-file-open', filePath);
+  }
+});
+
 if (!gotTheLock) {
   app.quit();
 } else {
   let mainWindow;
+  
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      const passedFile = commandLine.find(arg => arg.toLowerCase().endsWith('.pdf'));
+      if (passedFile) {
+        mainWindow.webContents.send('external-file-open', passedFile);
+      }
+    }
+  });
 
   function createWindow() {
     mainWindow = new BrowserWindow({
@@ -51,9 +76,25 @@ if (!gotTheLock) {
     });
 
     setupAIManager(mainWindow);
+
+    mainWindow.webContents.on('did-finish-load', () => {
+      if (fileToOpen) {
+        mainWindow.webContents.send('external-file-open', fileToOpen);
+        fileToOpen = null;
+      }
+    });
   }
 
   app.whenReady().then(() => {
+    // Parse arguments for Windows/Linux on cold start
+    if (process.platform !== 'darwin') {
+      const args = process.argv.slice(1);
+      const passedFile = args.find(arg => arg.toLowerCase().endsWith('.pdf'));
+      if (passedFile) {
+        fileToOpen = passedFile;
+      }
+    }
+
     createWindow();
     ipcMain.handle('openFloatingWindow', (event, route) => {
       const isDev = process.env.VITE_DEV_SERVER_URL;
@@ -105,6 +146,63 @@ if (!gotTheLock) {
       }
     });
 
+    ipcMain.handle('fs:readFile', async (event, filePath) => {
+      try {
+        const buffer = fs.readFileSync(filePath);
+        return { success: true, buffer, name: path.basename(filePath) };
+      } catch (error) {
+        console.error('Error reading file via IPC:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('fs:convertDocument', async (event, { buffer, fileName, toExt }) => {
+      try {
+        const tempDir = os.tmpdir();
+        const inputPath = path.join(tempDir, `input_${Date.now()}_${fileName}`);
+        
+        // El comando convert-to usa la extensión como formato de salida
+        const format = toExt.replace('.', '');
+        const outputFileName = `input_${Date.now()}_${fileName}`.replace(/\.[^/.]+$/, "") + `.${format}`;
+        const outputPath = path.join(tempDir, outputFileName);
+
+        fs.writeFileSync(inputPath, Buffer.from(buffer));
+
+        let sofficeCmd = 'soffice';
+        if (process.platform === 'win32') {
+          sofficeCmd = '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"';
+        } else if (process.platform === 'darwin') {
+          sofficeCmd = '/Applications/LibreOffice.app/Contents/MacOS/soffice';
+        }
+
+        const cmd = `${sofficeCmd} --headless --convert-to ${format} "${inputPath}" --outdir "${tempDir}"`;
+        
+        return new Promise((resolve) => {
+          exec(cmd, (error, stdout, stderr) => {
+            try {
+              if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+              
+              if (error || !fs.existsSync(outputPath)) {
+                console.error("LibreOffice Error:", error || stderr);
+                resolve({ success: false, error: error?.message || 'Error en conversión local' });
+                return;
+              }
+
+              const resultBuffer = fs.readFileSync(outputPath);
+              fs.unlinkSync(outputPath);
+              
+              resolve({ success: true, buffer: resultBuffer });
+            } catch (e) {
+              resolve({ success: false, error: e.message });
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error in fs:convertDocument:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
     // Configurar Auto Updater
     autoUpdater.autoDownload = false;
     
@@ -119,7 +217,10 @@ if (!gotTheLock) {
          setTimeout(() => mainWindow.webContents.send('updater:event', 'update-available', { version: 'Dev Test' }), 1000);
       } else {
          autoUpdater.checkForUpdates().catch(err => {
-             mainWindow.webContents.send('updater:event', 'error', err.message);
+             const errMsg = err.message.includes('404') 
+               ? 'No se encontró la actualización en GitHub (El repositorio podría ser privado o no hay releases publicadas).'
+               : err.message;
+             mainWindow.webContents.send('updater:event', 'error', errMsg);
          });
       }
     });

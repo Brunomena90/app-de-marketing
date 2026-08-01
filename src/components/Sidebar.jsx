@@ -4,8 +4,7 @@ import {
     LayoutDashboard, FileText, Users, Megaphone, Calendar,
     LogOut, Book, ExternalLink, Building2, Home, Star, Sparkles, TrendingUp, Handshake, ShoppingCart, UserCheck, Heart, Wallet, TrendingDown,
     Palette, Type, Image, Layers, ChevronDown, ChevronUp, User, PanelRight, ListTodo, Package,
-
-    Moon, Sun, LayoutList, GitMerge
+    Moon, Sun, LayoutList, GitMerge, DollarSign, Folder, Settings, BarChart, Clock, CheckCircle
 } from 'lucide-react';
 
 
@@ -133,7 +132,7 @@ const Sidebar = ({ onCloseMobile }) => {
 
             {/* MÓDULO MARKETING */}
             {hasMarketingAccess && isMarketingModule && (
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("MARKETING SUITE")}
 
                     <NavLink to="/dashboard" className={linkClass} onClick={onCloseMobile}>
@@ -243,7 +242,7 @@ const Sidebar = ({ onCloseMobile }) => {
 
             {/* MÓDULO EMPRESAS */}
             {hasEmpresasAccess && isEmpresasModule && (
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("GESTIÓN EMPRESARIAL")}
 
                     <NavLink to="/empresas" className={linkClass} onClick={onCloseMobile}>
@@ -274,7 +273,7 @@ const Sidebar = ({ onCloseMobile }) => {
 
             {/* MÓDULO VENTAS */}
             {hasVentasAccess && isVentasModule && (
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("GESTIÓN COMERCIAL")}
 
                     <NavLink to="/ventas" end className={linkClass} onClick={onCloseMobile}>
@@ -283,7 +282,51 @@ const Sidebar = ({ onCloseMobile }) => {
                                 <div className={iconWrapperClass('bg-emerald-500/10 text-emerald-400', isActive)}>
                                     <LayoutDashboard size={18} />
                                 </div>
-                                <span>Panel de Control (Ventas)</span>
+                                <span>Directorio Estratégico</span>
+                            </>
+                        )}
+                    </NavLink>
+                    
+                    <NavLink to="/ventas/cotizaciones-emitidas" className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-blue-500/10 text-blue-400', isActive)}>
+                                    <FileText size={18} />
+                                </div>
+                                <span>Cotizaciones</span>
+                            </>
+                        )}
+                    </NavLink>
+
+                    <NavLink to="/ventas/por-facturar" className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-indigo-500/10 text-indigo-400', isActive)}>
+                                    <Folder size={18} />
+                                </div>
+                                <span>Por Facturar</span>
+                            </>
+                        )}
+                    </NavLink>
+
+                    <NavLink to="/ventas/facturacion" className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-teal-500/10 text-teal-400', isActive)}>
+                                    <CheckCircle size={18} />
+                                </div>
+                                <span>Facturación</span>
+                            </>
+                        )}
+                    </NavLink>
+
+                    <NavLink to="/ventas/directas" className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-orange-500/10 text-orange-400', isActive)}>
+                                    <ShoppingCart size={18} />
+                                </div>
+                                <span>Ventas</span>
                             </>
                         )}
                     </NavLink>
@@ -292,7 +335,7 @@ const Sidebar = ({ onCloseMobile }) => {
 
             {/* MÓDULO FINANZAS */}
             {hasFinanzasAccess && isFinanzasModule && (
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("GESTIÓN FINANCIERA")}
 
                     <NavLink to="/finanzas" end className={linkClass} onClick={onCloseMobile}>
@@ -305,45 +348,72 @@ const Sidebar = ({ onCloseMobile }) => {
                             </>
                         )}
                     </NavLink>
+                    
 
-                    <NavLink to="/finanzas/cuentas-cobrar" className={linkClass} onClick={onCloseMobile}>
+                    <NavLink to="/finanzas/categorias" className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
                             <>
-                                <div className={iconWrapperClass('bg-emerald-500/10 text-emerald-400', isActive)}>
-                                    <TrendingUp size={18} />
+                                <div className={iconWrapperClass('bg-amber-500/10 text-amber-400', isActive)}>
+                                    <Folder size={18} />
                                 </div>
-                                <span>Cuentas por Cobrar</span>
+                                <span>Categorías</span>
+                            </>
+                        )}
+                    </NavLink>
+                    
+                    <NavLink to="/finanzas/planificacion" className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-purple-500/10 text-purple-400', isActive)}>
+                                    <Calendar size={18} />
+                                </div>
+                                <span>Planificación</span>
                             </>
                         )}
                     </NavLink>
 
-                    <NavLink to="/finanzas/egresos" className={linkClass} onClick={onCloseMobile}>
+                    <NavLink to="/finanzas/asistente-ia" className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
                             <>
-                                <div className={iconWrapperClass('bg-rose-500/10 text-rose-400', isActive)}>
-                                    <TrendingDown size={18} />
+                                <div className={iconWrapperClass('bg-pink-500/10 text-pink-400', isActive)}>
+                                    <Sparkles size={18} />
                                 </div>
-                                <span>Egresos & Pagos</span>
+                                <span>Asistente IA ✨</span>
                             </>
                         )}
                     </NavLink>
 
-                    <NavLink to="/finanzas/cotizaciones-recibidas" className={linkClass} onClick={onCloseMobile}>
-                        {({ isActive }) => (
-                            <>
-                                <div className={iconWrapperClass('bg-teal-500/10 text-teal-400', isActive)}>
-                                    <Handshake size={18} />
-                                </div>
-                                <span>Cotizaciones Proveedores</span>
-                            </>
-                        )}
-                    </NavLink>
+
+                    <div className="pt-2 border-t border-gray-800/50 mt-2">
+                        <NavLink to="/finanzas/cuentas-cobrar" className={linkClass} onClick={onCloseMobile}>
+                            {({ isActive }) => (
+                                <>
+                                    <div className={iconWrapperClass('bg-emerald-500/10 text-emerald-400', isActive)}>
+                                        <TrendingUp size={18} />
+                                    </div>
+                                    <span className="text-xs">Cuentas por Cobrar</span>
+                                </>
+                            )}
+                        </NavLink>
+
+                        <NavLink to="/finanzas/egresos" className={linkClass} onClick={onCloseMobile}>
+                            {({ isActive }) => (
+                                <>
+                                    <div className={iconWrapperClass('bg-rose-500/10 text-rose-400', isActive)}>
+                                        <TrendingDown size={18} />
+                                    </div>
+                                    <span className="text-xs">Egresos & Pagos</span>
+                                </>
+                            )}
+                        </NavLink>
+
+                    </div>
                 </nav>
             )}
 
             {/* MÓDULO ARTORIES IA */}
             {hasWorkFlowAccess && isWorkFlowModule && (
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("ARTORIES IA")}
 
                     <NavLink to="/workflow-ai" end className={linkClass} onClick={onCloseMobile}>
@@ -362,7 +432,7 @@ const Sidebar = ({ onCloseMobile }) => {
             {/* MÓDULO BRANDING - GESTIÓN ESTRATÉGICA DE MARCA */}
             {hasBrandingAccess && isBrandingModule && activeEmpresa !== 'Todas' && (
 
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("GESTIÓN DE MARCA")}
 
                     <NavLink to="/branding" end className={linkClass} onClick={onCloseMobile}>
@@ -469,7 +539,7 @@ const Sidebar = ({ onCloseMobile }) => {
 
             {/* MÓDULO ALMACENES */}
             {hasAlmacenesAccess && isAlmacenesModule && (
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("GESTIÓN DE INVENTARIO")}
 
                     <NavLink to="/almacenes" end className={linkClass} onClick={onCloseMobile}>
@@ -487,16 +557,38 @@ const Sidebar = ({ onCloseMobile }) => {
 
             {/* MÓDULO PROCESOS */}
             {hasProcesosAccess && isProcesosModule && (
-                <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+                <nav className="p-4 space-y-2 overflow-y-auto scrollbar-hide flex-1">
                     {renderSectionHeader("GESTIÓN DE PROCESOS")}
 
+                    <NavLink to="/procesos/dashboard" className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-indigo-500/10 text-indigo-400', isActive)}>
+                                    <BarChart size={18} />
+                                </div>
+                                <span>Dashboard Analítico</span>
+                            </>
+                        )}
+                    </NavLink>
+                    
                     <NavLink to="/procesos" end className={linkClass} onClick={onCloseMobile}>
                         {({ isActive }) => (
                             <>
                                 <div className={iconWrapperClass('bg-cyan-500/10 text-cyan-400', isActive)}>
                                     <GitMerge size={18} />
                                 </div>
-                                <span>Panel de Control</span>
+                                <span>Gestión de Procesos</span>
+                            </>
+                        )}
+                    </NavLink>
+
+                    <NavLink to="/procesos/estudio-tiempos" className={linkClass} onClick={onCloseMobile}>
+                        {({ isActive }) => (
+                            <>
+                                <div className={iconWrapperClass('bg-amber-500/10 text-amber-400', isActive)}>
+                                    <Clock size={18} />
+                                </div>
+                                <span>Estudio de Tiempos</span>
                             </>
                         )}
                     </NavLink>

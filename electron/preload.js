@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Almacenamiento local (Hub)
     selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
     saveFileToDisk: (args) => ipcRenderer.invoke('fs:saveFile', args),
+    readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
+    convertDocument: (args) => ipcRenderer.invoke('fs:convertDocument', args),
     // Auto-updater
     checkForUpdates: () => ipcRenderer.invoke('updater:check'),
     downloadUpdate: () => ipcRenderer.invoke('updater:download'),
@@ -31,5 +33,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const listener = (event, eventName, data) => callback(eventName, data);
         ipcRenderer.on('updater:event', listener);
         return () => ipcRenderer.removeListener('updater:event', listener);
+    },
+    onExternalFileOpen: (callback) => {
+        const listener = (event, filePath) => callback(filePath);
+        ipcRenderer.on('external-file-open', listener);
+        return () => ipcRenderer.removeListener('external-file-open', listener);
     }
 });

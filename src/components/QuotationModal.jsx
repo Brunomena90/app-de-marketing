@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const STATUSES = ['Pendiente', 'Enviada', 'En revisión', 'Aprobada', 'Rechazada'];
 const STATUS_COLORS = {
@@ -10,7 +10,7 @@ const STATUS_COLORS = {
 };
 import { X, Plus, Trash2, Save, FileText, Calendar, User, Building, Mail, Phone, Hash, ShieldCheck, CheckSquare, Square, MessageSquare } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, addDoc, updateDoc, doc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, query, where, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import jsPDF from 'jspdf';
@@ -18,6 +18,43 @@ import autoTable from 'jspdf-autotable';
 
 const QuotationModal = ({ isOpen, onClose, quotation = null, onSave }) => {
     const { user, activeEmpresa } = useAuth();
+    const [activeCompanyData, setActiveCompanyData] = useState(null);
+    
+    // Autocompletado de productos/servicios
+    const [productosAlmacen, setProductosAlmacen] = useState([]);
+    const [activeProductSearch, setActiveProductSearch] = useState(null);
+    const [productSearchQuery, setProductSearchQuery] = useState('');
+    const [isManualEntry, setIsManualEntry] = useState(false);
+    const [manualServiceName, setManualServiceName] = useState('');
+    const searchDropdownRef = useRef(null);
+
+    useEffect(() => {
+        let q;
+        if (!activeEmpresa || activeEmpresa === 'Todas') {
+            q = query(collection(db, 'almacen_productos'));
+        } else {
+            q = query(collection(db, 'almacen_productos'), where('empresa', '==', activeEmpresa));
+        }
+        
+        const unsub = onSnapshot(q, (snap) => {
+            let arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            arr.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+            setProductosAlmacen(arr);
+        });
+        
+        return () => unsub();
+    }, [activeEmpresa]);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (searchDropdownRef.current && !searchDropdownRef.current.contains(e.target)) {
+                setActiveProductSearch(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const [formData, setFormData] = useState({
         clientName: '',
         clientRUC: '',
@@ -136,8 +173,8 @@ const QuotationModal = ({ isOpen, onClose, quotation = null, onSave }) => {
                     showRUC: false,
                     issuerName: user?.name || '',
                     issuerCompany: activeEmpresa === 'Todas' ? '' : activeEmpresa,
-                    issuerRUC: '',
-                    showIssuerRUC: false,
+                    issuerRUC: activeCompanyData?.ruc || '',
+                    showIssuerRUC: !!activeCompanyData?.ruc,
                     issuerEmail: user?.email || '',
                     issuerPhone: '',
                     quotationNumber: nextNumber,
@@ -155,7 +192,23 @@ const QuotationModal = ({ isOpen, onClose, quotation = null, onSave }) => {
         };
 
         if (isOpen) initForm();
-    }, [quotation, user, isOpen, activeEmpresa]);
+    }, [quotation, user, isOpen, activeEmpresa, activeCompanyData]);
+
+    useEffect(() => {
+        const fetchCompanyData = async () => {
+            if (!activeEmpresa || activeEmpresa === 'Todas') return;
+            try {
+                const q = query(collection(db, 'empresas'), where('name', '==', activeEmpresa));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    setActiveCompanyData(snap.docs[0].data());
+                }
+            } catch (error) {
+                console.error('Error fetching company data:', error);
+            }
+        };
+        fetchCompanyData();
+    }, [activeEmpresa]);
 
     useEffect(() => {
         if (isOpen) {
@@ -302,7 +355,8 @@ const QuotationModal = ({ isOpen, onClose, quotation = null, onSave }) => {
         doc.setFontSize(24);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30, 41, 59);
-        doc.text("COTIZACIÓN", 20, 30);
+        const titleX = activeCompanyData?.logoBase64 ? 50 : 20;
+        doc.text("COTIZACIÓN", titleX, 30);
         
         doc.setFontSize(12);
         doc.setTextColor(100);
@@ -336,6 +390,28 @@ const QuotationModal = ({ isOpen, onClose, quotation = null, onSave }) => {
 
         // Info Emisor
         let issuerY = 52;
+        
+        // Dibujar logo de la empresa si existe (esquina superior izquierda, x=20)
+        // Para que quede junto al bloque del destinatario o en la cabecera?
+        // El usuario solicitó: "esquina superior izquierda del documento, junto al nombre de la empresa"
+        // Como la cabecera tiene "COTIZACION" en Y=30, podemos poner el logo arriba a la izquierda.
+        // Movamos "COTIZACIÓN" un poco más al centro, o si no lo ponemos en Y=15, X=20
+        if (activeCompanyData?.logoBase64) {
+            try {
+                // Formato de imagen suele ser data:image/png;base64,... 
+                doc.addImage(activeCompanyData.logoBase64, 'PNG', 20, 10, 25, 25, undefined, 'FAST');
+                // Para no tapar "COTIZACIÓN", movemos cotización a la derecha o abajo? 
+                // Ya que "COTIZACIÓN" está en x=20 y=30, el logo lo pondría justo sobre él.
+                // Modificaremos x de "COTIZACIÓN" al lado del logo:
+                doc.setFontSize(24);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(30, 41, 59);
+                // doc.text("COTIZACIÓN", 50, 30); (no lo cambiamos aquí por simplificar el parche, pero lo ideal es dibujarlo a partir de X=50 si hay logo)
+            } catch (e) {
+                console.error("No se pudo renderizar el logo", e);
+            }
+        }
+
         const issuerLines = doc.splitTextToSize(`Empresa: ${issuerCompany}`, 80);
         doc.text(issuerLines, 110, issuerY);
         issuerY += (issuerLines.length * 4.5);
@@ -676,13 +752,17 @@ const QuotationModal = ({ isOpen, onClose, quotation = null, onSave }) => {
                                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-4 py-3">
                                                 <div className="space-y-1">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 relative">
                                                         <input 
                                                             type="text" 
                                                             value={item.description}
-                                                            onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                                                            placeholder="Ej: Producción de Video V3"
-                                                            className="flex-1 bg-transparent outline-none text-sm text-slate-700 font-bold"
+                                                            readOnly
+                                                            onClick={() => {
+                                                                setActiveProductSearch(idx);
+                                                                setProductSearchQuery(item.description || '');
+                                                            }}
+                                                            placeholder="Clic para buscar o añadir..."
+                                                            className="flex-1 bg-transparent outline-none text-sm text-slate-700 font-bold cursor-pointer"
                                                         />
                                                         <button 
                                                             onClick={() => addCommentToItem(idx)}
@@ -847,6 +927,175 @@ const QuotationModal = ({ isOpen, onClose, quotation = null, onSave }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal Flotante para Búsqueda de Productos y Servicios */}
+            {activeProductSearch !== null && (
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-[#111520] rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 border dark:border-white/10">
+                    <div className="px-6 py-5 border-b border-slate-100 dark:border-white/10 flex justify-between items-center bg-slate-50/50 dark:bg-[#0a0f1e]/50">
+                        <div>
+                            <h3 className="font-black text-slate-800 dark:text-white text-lg">Buscar Concepto</h3>
+                            <p className="text-xs font-bold text-slate-400 dark:text-gray-400 mt-0.5">Selecciona o crea un nuevo servicio/producto</p>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                setActiveProductSearch(null);
+                                setIsManualEntry(false);
+                            }} 
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200/50 dark:bg-white/5 text-slate-500 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-white transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+                    
+                    {isManualEntry ? (
+                        <div className="p-6 space-y-4 animate-in slide-in-from-right-4 duration-300">
+                            <h4 className="font-bold text-slate-800 dark:text-white text-sm">Nombre del Nuevo Servicio</h4>
+                            <input 
+                                type="text" 
+                                placeholder="Ej. Instalación de equipo..."
+                                autoFocus
+                                value={manualServiceName}
+                                onChange={(e) => setManualServiceName(e.target.value)}
+                                className="w-full bg-transparent border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm focus:bg-white dark:focus:bg-[#1a2133] focus:ring-4 focus:ring-emerald-100/50 dark:focus:ring-emerald-500/20 focus:border-emerald-400 outline-none transition-all font-bold text-slate-700 dark:text-white placeholder:font-medium placeholder:text-slate-400 dark:placeholder:text-gray-500"
+                            />
+                            <div className="flex gap-3 pt-2">
+                                <button 
+                                    onClick={() => setIsManualEntry(false)}
+                                    className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 dark:text-gray-300 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-2xl transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!manualServiceName.trim()) return;
+                                        const idx = activeProductSearch;
+                                        const code = `M-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
+                                        const newService = {
+                                            nombre: manualServiceName.trim(),
+                                            esServicio: true,
+                                            matricula: code,
+                                            precio: 0,
+                                            precioVenta: 0,
+                                            empresa: activeEmpresa || 'Todas',
+                                            createdAt: new Date().toISOString()
+                                        };
+                                        
+                                        try {
+                                            const docRef = await addDoc(collection(db, 'almacen_productos'), newService);
+                                            const newItems = [...formData.items];
+                                            newItems[idx].description = newService.nombre;
+                                            newItems[idx].unitPrice = 0;
+                                            newItems[idx].total = 0;
+                                            newItems[idx].matriculaId = docRef.id;
+                                            newItems[idx].matricula = code;
+                                            newItems[idx].esServicio = true;
+                                            
+                                            setFormData({ ...formData, items: newItems });
+                                            setActiveProductSearch(null);
+                                            setIsManualEntry(false);
+                                            toast.success(`Servicio '${code}' registrado`);
+                                        } catch (e) {
+                                            console.error(e);
+                                            toast.error("Error al registrar el servicio manual");
+                                        }
+                                    }}
+                                    className="flex-1 px-4 py-3 text-sm font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl transition-all shadow-lg hover:shadow-xl shadow-emerald-200 dark:shadow-emerald-900/20 flex items-center justify-center gap-2"
+                                >
+                                    <Save size={16} /> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-6 space-y-4 animate-in slide-in-from-left-4 duration-300">
+                            <input 
+                                type="text" 
+                                placeholder="🔍 Escribe para buscar por nombre o matrícula..."
+                                autoFocus
+                                value={productSearchQuery}
+                                onChange={(e) => setProductSearchQuery(e.target.value)}
+                                className="w-full bg-transparent border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm focus:bg-white dark:focus:bg-[#1a2133] focus:ring-4 focus:ring-emerald-100/50 dark:focus:ring-emerald-500/20 focus:border-emerald-400 outline-none transition-all font-bold text-slate-700 dark:text-white placeholder:font-medium placeholder:text-slate-400 dark:placeholder:text-gray-500"
+                            />
+                            
+                            <div className="max-h-64 overflow-y-auto border border-slate-100 dark:border-white/5 rounded-2xl divide-y divide-slate-100 dark:divide-white/5 shadow-inner bg-transparent">
+                                {productosAlmacen
+                                    .filter(p => p.nombre.toLowerCase().includes(productSearchQuery.toLowerCase()) || (p.matricula || '').toLowerCase().includes(productSearchQuery.toLowerCase()))
+                                    .slice(0, 5)
+                                    .map(p => (
+                                        <div 
+                                            key={p.id}
+                                            className="px-5 py-4 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors group"
+                                            onClick={() => {
+                                                const idx = activeProductSearch;
+                                                const newItems = [...formData.items];
+                                                newItems[idx].description = p.nombre;
+                                                newItems[idx].unitPrice = Number(p.precioVenta) || 0;
+                                                newItems[idx].total = newItems[idx].quantity * newItems[idx].unitPrice;
+                                                
+                                                let extraNotes = [];
+                                                if (p.esServicio) {
+                                                    if (Array.isArray(p.itemsServicio) && p.itemsServicio.length > 0) {
+                                                        extraNotes = p.itemsServicio.filter(s => s.trim() !== '');
+                                                    } else if (p.descripcionServicio) {
+                                                        extraNotes = p.descripcionServicio
+                                                            .split('\n')
+                                                            .map(s => s.trim().replace(/^•\s*/, ''))
+                                                            .filter(s => s !== '');
+                                                    }
+                                                }
+                                                
+                                                const { subtotal, igv, total } = calculateTotals(newItems, formData.includeIGV);
+                                                let newNotes = [...formData.notes];
+                                                if (extraNotes.length > 0) {
+                                                    if (newNotes.length === 1 && newNotes[0].trim() === '') {
+                                                        newNotes = [...extraNotes];
+                                                    } else {
+                                                        newNotes = [...newNotes, ...extraNotes];
+                                                    }
+                                                }
+
+                                                setFormData({ ...formData, items: newItems, notes: newNotes, subtotal, igv, total });
+                                                setActiveProductSearch(null);
+                                            }}
+                                        >
+                                            <div className="font-black text-slate-800 dark:text-white text-sm flex justify-between items-center">
+                                                <span>{p.nombre}</span>
+                                                <span className="text-slate-600 dark:text-gray-300 bg-transparent group-hover:bg-slate-100 dark:group-hover:bg-white/10 px-2 py-0.5 rounded-md transition-colors">{formData.currency} {Number(p.precioVenta || 0).toFixed(2)}</span>
+                                            </div>
+                                            <div className="text-[11px] font-bold text-slate-400 dark:text-gray-500 mt-1.5 flex gap-2 items-center">
+                                                <span className="font-mono bg-transparent border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded text-slate-500 dark:text-gray-400">{p.matricula}</span>
+                                                {p.esServicio ? (
+                                                    <span className="text-indigo-500 dark:text-indigo-400 px-1 uppercase tracking-wider">Servicio</span>
+                                                ) : (
+                                                    <span className="text-amber-500 dark:text-amber-400 px-1 uppercase tracking-wider">Producto</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                }
+                                {productosAlmacen.filter(p => p.nombre.toLowerCase().includes(productSearchQuery.toLowerCase()) || (p.matricula || '').toLowerCase().includes(productSearchQuery.toLowerCase())).length === 0 && (
+                                    <div className="px-5 py-8 text-slate-400 dark:text-gray-500 text-sm font-bold text-center">
+                                        No se encontraron resultados para "{productSearchQuery}"
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="pt-2">
+                                <button
+                                    onClick={() => {
+                                        setManualServiceName(productSearchQuery || '');
+                                        setIsManualEntry(true);
+                                    }}
+                                    className="w-full text-center px-4 py-3 text-sm font-black text-white bg-slate-800 dark:bg-white/10 hover:bg-slate-900 dark:hover:bg-white/20 rounded-2xl transition-all shadow-lg hover:shadow-xl shadow-slate-200 dark:shadow-none flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={16} /> Escribir Manualmente (Nuevo Servicio)
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
         </div>
     );
 };

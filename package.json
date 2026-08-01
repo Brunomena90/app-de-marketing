@@ -93,6 +93,14 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     },
+    "fileAssociations": [
+      {
+        "ext": "pdf",
+        "name": "Documento PDF",
+        "description": "Abrir PDF en Artories",
+        "role": "Editor"
+      }
+    ],
     "publish": [
       {
         "provider": "github",

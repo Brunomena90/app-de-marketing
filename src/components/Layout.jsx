@@ -86,7 +86,7 @@ const Layout = ({ children, noPadding = false }) => {
                     </div>
 
                     {/* Área de Scroll Principal */}
-                    <main id={isIframePane ? "main-scroll-container-pane" : "main-scroll-container"} className={`flex-1 w-full relative [-webkit-overflow-scrolling:touch] ${marketingDark ? 'marketing-dark' : ''} ${noPadding ? 'overflow-hidden flex flex-col' : `overflow-y-auto p-4 md:p-8 ${bgGlobalClass}`}`}>
+                    <main id={isIframePane ? "main-scroll-container-pane" : "main-scroll-container"} className={`flex-1 w-full relative [-webkit-overflow-scrolling:touch] ${marketingDark ? 'marketing-dark' : ''} ${noPadding ? 'overflow-hidden flex flex-col' : `overflow-y-auto scrollbar-hide p-4 md:p-8 ${bgGlobalClass}`}`}>
                         {noPadding ? (
                             isEmpresaDisabled ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center p-6">

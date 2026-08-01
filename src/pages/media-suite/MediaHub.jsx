@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Image, Video, Music, PenTool, LayoutTemplate, ArrowRight, ArrowLeft, HardDrive, Trash2, FolderOpen, FileText } from 'lucide-react';
+import { Image, Video, Music, PenTool, LayoutTemplate, ArrowRight, ArrowLeft, HardDrive, Trash2, FolderOpen, FileText, Monitor, DownloadCloud } from 'lucide-react';
 import { getAllAssets, removeAsset } from '../../lib/mediaStore';
 import { toast } from 'sonner';
 
@@ -87,6 +87,15 @@ export default function MediaHub() {
             bg: 'bg-rose-500/10',
             border: 'border-rose-500/20',
             route: '/media-suite/pdf',
+        },
+        {
+            title: 'Conversor de Formatos',
+            description: 'Convierte documentos PDF, Word, Excel y PPT.',
+            icon: FileText,
+            color: 'text-indigo-400',
+            bg: 'bg-indigo-400/10',
+            border: 'border-indigo-400/20',
+            route: '/media-suite/converter',
         }
     ];
 
@@ -112,8 +121,32 @@ export default function MediaHub() {
                             Envía recursos entre los diferentes módulos para crear contenido de forma conectada.
                         </p>
                     </div>
+                    </div>
                 </div>
 
+                {/* Banner de Descarga para Web */}
+                {!window.electronAPI && (
+                    <div className="mb-8 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center shrink-0">
+                                <Monitor className="w-6 h-6 text-indigo-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-white">Desbloquea todo el potencial</h3>
+                                <p className="text-zinc-400 text-sm">Instala la versión de escritorio para acceder al conversor real de documentos y guardar proyectos localmente.</p>
+                            </div>
+                        </div>
+                        <a 
+                            href="https://github.com/Brunomena90/app-de-marketing/releases/latest" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors shrink-0"
+                        >
+                            <DownloadCloud className="w-5 h-5" />
+                            Descargar App
+                        </a>
+                    </div>
+                )}
 
                 {/* Modules Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

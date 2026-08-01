@@ -25,6 +25,7 @@ export default function PdfEditor() {
     const [pendingOrganizeAnnotations, setPendingOrganizeAnnotations] = useState(null);
     const [pendingOrganizeNumPages, setPendingOrganizeNumPages] = useState(null);
     const [draggingAnn, setDraggingAnn] = useState(null);
+    const [resizingAnn, setResizingAnn] = useState(null);
     
     // Herramientas
     const [activeTool, setActiveTool] = useState('select'); // select, text, sign, image
@@ -38,6 +39,46 @@ export default function PdfEditor() {
     const imageInputRef = useRef(null);
     const mainRef = useRef(null);
     const pageTransitionRef = useRef(false);
+
+    useEffect(() => {
+        if (window.externalFileToOpen) {
+            const loadExternalFile = async () => {
+                try {
+                    const { data, name } = window.externalFileToOpen;
+                    let arrayBuffer;
+                    let fileObj;
+                    if (data instanceof ArrayBuffer) {
+                        arrayBuffer = data;
+                        fileObj = new File([data], name || 'documento.pdf', { type: 'application/pdf' });
+                    } else if (data instanceof Blob) {
+                        arrayBuffer = await data.arrayBuffer();
+                        fileObj = new File([data], name || 'documento.pdf', { type: 'application/pdf' });
+                    }
+                    
+                    if (fileObj && arrayBuffer) {
+                        const bytes = new Uint8Array(arrayBuffer);
+                        const newDoc = {
+                            id: Date.now().toString(),
+                            name: fileObj.name,
+                            file: fileObj,
+                            bytes,
+                            numPages: null,
+                            pageNumber: 1,
+                            annotations: []
+                        };
+                        setDocuments(prev => [...prev, newDoc]);
+                        setActiveDocId(newDoc.id);
+                        toast.success('Documento cargado correctamente');
+                    }
+                } catch (error) {
+                    console.error("Error al cargar documento externo:", error);
+                } finally {
+                    delete window.externalFileToOpen;
+                }
+            };
+            loadExternalFile();
+        }
+    }, []);
 
     // Helpers para el documento activo
     const activeDoc = documents.find(d => d.id === activeDocId) || null;
@@ -195,6 +236,7 @@ export default function PdfEditor() {
 
     // Lógica para arrastrar anotaciones optimizada
     const draggingAnnRef = useRef(null);
+    const resizingAnnRef = useRef(null);
     const annotationsRef = useRef(annotations);
     
     useEffect(() => {
@@ -203,18 +245,51 @@ export default function PdfEditor() {
 
     useEffect(() => {
         const handleMouseMove = (e) => {
-            if (!draggingAnnRef.current) return;
-            const dragData = draggingAnnRef.current;
-            const dx = (e.clientX - dragData.startX) / scale;
-            const dy = (e.clientY - dragData.startY) / scale;
-            
-            const newData = {
-                ...dragData,
-                currentX: dragData.origX + dx,
-                currentY: dragData.origY + dy
-            };
-            draggingAnnRef.current = newData;
-            setDraggingAnn(newData); // actualiza solo estado local visual
+            if (draggingAnnRef.current) {
+                const dragData = draggingAnnRef.current;
+                const dx = (e.clientX - dragData.startX) / scale;
+                const dy = (e.clientY - dragData.startY) / scale;
+                
+                const newData = {
+                    ...dragData,
+                    currentX: dragData.origX + dx,
+                    currentY: dragData.origY + dy
+                };
+                draggingAnnRef.current = newData;
+                setDraggingAnn(newData); // actualiza solo estado local visual
+            } else if (resizingAnnRef.current) {
+                const resizeData = resizingAnnRef.current;
+                const dx = (e.clientX - resizeData.startX) / scale;
+                
+                // Maintain aspect ratio based on width change
+                const ratio = resizeData.origH / resizeData.origW;
+                let newWidth = resizeData.origW;
+                let newHeight = resizeData.origH;
+                let newX = resizeData.origX;
+                let newY = resizeData.origY;
+                
+                if (resizeData.handle === 'bottom-right') {
+                    newWidth = Math.max(20, resizeData.origW + dx);
+                    newHeight = newWidth * ratio;
+                } else if (resizeData.handle === 'top-left') {
+                    newWidth = Math.max(20, resizeData.origW - dx);
+                    newHeight = newWidth * ratio;
+                    const diffW = resizeData.origW - newWidth;
+                    const diffH = resizeData.origH - newHeight;
+                    newX = resizeData.origX + diffW;
+                    newY = resizeData.origY + diffH;
+                }
+                
+                const newData = {
+                    ...resizeData,
+                    currentW: newWidth,
+                    currentH: newHeight,
+                    currentX: newX,
+                    currentY: newY
+                };
+                resizingAnnRef.current = newData;
+                setResizingAnn(newData);
+            }
         };
 
         const handleMouseUp = () => {
@@ -227,6 +302,16 @@ export default function PdfEditor() {
                 });
                 draggingAnnRef.current = null;
                 setDraggingAnn(null);
+            }
+            if (resizingAnnRef.current) {
+                const resizeData = resizingAnnRef.current;
+                updateActiveDoc({
+                    annotations: annotationsRef.current.map(a => 
+                        a.id === resizeData.id ? { ...a, width: resizeData.currentW, height: resizeData.currentH, x: resizeData.currentX, y: resizeData.currentY } : a
+                    )
+                });
+                resizingAnnRef.current = null;
+                setResizingAnn(null);
             }
         };
 
@@ -1434,13 +1519,16 @@ export default function PdfEditor() {
                                     {/* Capa de Anotaciones Superpuestas */}
                                     {annotations.filter(a => a.page === pageNumber).map(ann => {
                                         const isDragging = draggingAnn && draggingAnn.id === ann.id;
-                                        const currentX = isDragging ? draggingAnn.currentX : ann.x;
-                                        const currentY = isDragging ? draggingAnn.currentY : ann.y;
+                                        const isResizing = resizingAnn && resizingAnn.id === ann.id;
+                                        const currentX = isDragging ? draggingAnn.currentX : (isResizing ? resizingAnn.currentX : ann.x);
+                                        const currentY = isDragging ? draggingAnn.currentY : (isResizing ? resizingAnn.currentY : ann.y);
+                                        const currentW = isResizing ? resizingAnn.currentW : ann.width;
+                                        const currentH = isResizing ? resizingAnn.currentH : ann.height;
                                         
                                         return (
                                         <div
                                             key={ann.id}
-                                            className={`absolute cursor-move group select-none z-50 ${isDragging ? 'opacity-80' : ''}`}
+                                            className={`absolute cursor-move group select-none z-50 ${isDragging || isResizing ? 'opacity-80' : ''}`}
                                             style={{ left: currentX, top: currentY, color: ann.color, fontSize: `${ann.size}px` }}
                                             onMouseDown={(e) => {
                                                 e.stopPropagation();
@@ -1477,7 +1565,59 @@ export default function PdfEditor() {
                                                     {ann.text}
                                                 </span>
                                             ) : (
-                                                <img src={ann.dataUrl} alt="Firma" className="group-hover:outline group-hover:outline-1 group-hover:outline-blue-500" style={{ width: ann.width, height: ann.height }} draggable="false" />
+                                                <div className="relative inline-block group-hover:outline group-hover:outline-1 group-hover:outline-blue-500">
+                                                    <img src={ann.dataUrl} alt="Firma" style={{ width: currentW, height: currentH }} draggable="false" />
+                                                    
+                                                    {/* Puntos de redimensión */}
+                                                    {(activeTool !== 'organize') && (
+                                                        <>
+                                                            <div 
+                                                                className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-blue-500 rounded-full border border-white opacity-0 group-hover:opacity-100 cursor-nwse-resize"
+                                                                onMouseDown={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const resizeData = {
+                                                                        id: ann.id,
+                                                                        handle: 'top-left',
+                                                                        startX: e.clientX,
+                                                                        startY: e.clientY,
+                                                                        origX: ann.x,
+                                                                        origY: ann.y,
+                                                                        origW: ann.width,
+                                                                        origH: ann.height,
+                                                                        currentX: ann.x,
+                                                                        currentY: ann.y,
+                                                                        currentW: ann.width,
+                                                                        currentH: ann.height
+                                                                    };
+                                                                    setResizingAnn(resizeData);
+                                                                    resizingAnnRef.current = resizeData;
+                                                                }}
+                                                            />
+                                                            <div 
+                                                                className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-500 rounded-full border border-white opacity-0 group-hover:opacity-100 cursor-nwse-resize"
+                                                                onMouseDown={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const resizeData = {
+                                                                        id: ann.id,
+                                                                        handle: 'bottom-right',
+                                                                        startX: e.clientX,
+                                                                        startY: e.clientY,
+                                                                        origX: ann.x,
+                                                                        origY: ann.y,
+                                                                        origW: ann.width,
+                                                                        origH: ann.height,
+                                                                        currentX: ann.x,
+                                                                        currentY: ann.y,
+                                                                        currentW: ann.width,
+                                                                        currentH: ann.height
+                                                                    };
+                                                                    setResizingAnn(resizeData);
+                                                                    resizingAnnRef.current = resizeData;
+                                                                }}
+                                                            />
+                                                        </>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                         );

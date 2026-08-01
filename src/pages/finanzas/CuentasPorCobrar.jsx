@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
-import { TrendingUp, Search, Building2, ExternalLink, Calendar, ShoppingCart, UserCheck, CheckCircle } from 'lucide-react';
+import { TrendingUp, Search, Building2, ExternalLink, Calendar, ShoppingCart, UserCheck, CheckCircle, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const CuentasPorCobrar = () => {
     const { activeEmpresa } = useAuth();
     const [ordenes, setOrdenes] = useState([]);
     const [deals, setDeals] = useState([]);
+    const [cotizaciones, setCotizaciones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
@@ -29,6 +30,12 @@ const CuentasPorCobrar = () => {
         unsubs.push(onSnapshot(query(collection(db, 'crm_deals'), orderBy('createdAt', 'desc')), snap => {
             const all = snap.docs.map(d => ({ ...d.data(), id: d.id }));
             setDeals(filterByEmpresa(all).filter(d => d.stageId === 'cerrado'));
+        }));
+
+        // Fetch Cotizaciones (Aprobada, Por Facturar, Facturado)
+        unsubs.push(onSnapshot(query(collection(db, 'cotizaciones'), orderBy('createdAt', 'desc')), snap => {
+            const all = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+            setCotizaciones(filterByEmpresa(all).filter(c => ['Aprobada', 'Por facturar', 'Facturado'].includes(c.status)));
             setLoading(false);
         }));
 
@@ -64,6 +71,19 @@ const CuentasPorCobrar = () => {
                 icon: <UserCheck size={18} />
             });
         });
+        cotizaciones.forEach(c => {
+            list.push({
+                id: c.id,
+                type: 'Cotización',
+                title: c.items?.[0]?.description || `Cotización ${c.id.slice(0,6).toUpperCase()}`,
+                client: c.clientName,
+                amount: c.total,
+                date: (c.updatedAt || c.createdAt).split('T')[0],
+                status: c.status,
+                route: c.status === 'Facturado' ? '/ventas/facturacion' : '/ventas/cotizaciones',
+                icon: <FileText size={18} />
+            });
+        });
 
         // Sort by date desc
         list.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -78,7 +98,7 @@ const CuentasPorCobrar = () => {
     const totalCobrar = filtered.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10">
             <div className="flex flex-col md:flex-row justify-between gap-4 items-end">
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">

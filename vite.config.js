@@ -55,13 +55,15 @@ export default defineConfig({
             src: "pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any"
-          },
-          {
-            src: "pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
             purpose: "maskable"
+          }
+        ],
+        file_handlers: [
+          {
+            action: "/#/media-suite/pdf",
+            accept: {
+              "application/pdf": [".pdf"]
+            }
           }
         ]
       },

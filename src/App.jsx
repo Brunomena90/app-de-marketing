@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { RequestProvider } from './context/RequestContext';
 import { Toaster } from 'sonner';
@@ -27,7 +27,10 @@ const FuncionIA = lazy(() => import('./pages/marketing/FuncionIA'));
 const AppCenter = lazy(() => import('./pages/AppCenter'));
 const ContentCalendar = lazy(() => import('./pages/ContentCalendar'));
 const Ventas = lazy(() => import('./pages/Ventas'));
+const PorFacturar = lazy(() => import('./pages/ventas/PorFacturar'));
+const VentasDirectas = lazy(() => import('./pages/ventas/VentasDirectas'));
 const CotizacionesEmitidas = lazy(() => import('./pages/ventas/CotizacionesEmitidas'));
+const Facturacion = lazy(() => import('./pages/ventas/Facturacion'));
 const OrdenesCompraVentas = lazy(() => import('./pages/ventas/OrdenesCompraVentas'));
 const Crm = lazy(() => import('./pages/ventas/Crm'));
 const ClientesFrecuentes = lazy(() => import('./pages/ventas/ClientesFrecuentes'));
@@ -35,10 +38,19 @@ const Finanzas = lazy(() => import('./pages/Finanzas'));
 const CuentasPorCobrar = lazy(() => import('./pages/finanzas/CuentasPorCobrar'));
 const Egresos = lazy(() => import('./pages/finanzas/Egresos'));
 const CotizacionesRecibidas = lazy(() => import('./pages/finanzas/CotizacionesRecibidas'));
+
+const Transacciones = lazy(() => import('./pages/finanzas/components/Transacciones'));
+const Categorias = lazy(() => import('./pages/finanzas/components/Categorias'));
+const Planificacion = lazy(() => import('./pages/finanzas/components/Planificacion'));
+const AsistenteIA = lazy(() => import('./pages/finanzas/components/AsistenteIA'));
+const Administrador = lazy(() => import('./pages/finanzas/components/Administrador'));
+
 const WorkFlowAIDashboard = lazy(() => import('./pages/workflow-ai/WorkFlowAIDashboard'));
 const Almacenes = lazy(() => import('./pages/almacenes/Almacenes'));
 const ProcesosDashboard = lazy(() => import('./pages/procesos/ProcesosDashboard'));
 const ProcesoDetail = lazy(() => import('./pages/procesos/ProcesoDetail'));
+const ProcesosDashboardMetrics = lazy(() => import('./pages/procesos/ProcesosDashboardMetrics'));
+const EstudioTiempos = lazy(() => import('./pages/procesos/EstudioTiempos'));
 
 const Paletas = lazy(() => import('./pages/branding/Paletas'));
 const Tipografias = lazy(() => import('./pages/branding/Tipografias'));
@@ -54,6 +66,7 @@ const DesignEditor = lazy(() => import('./pages/media-suite/DesignEditor'));
 const AudioEditor = lazy(() => import('./pages/media-suite/AudioEditor'));
 const VideoEditor = lazy(() => import('./pages/media-suite/VideoEditor'));
 const PdfEditor = lazy(() => import('./pages/media-suite/PdfEditor'));
+const FileConverter = lazy(() => import('./pages/media-suite/FileConverter'));
 const PrivateRoute = ({ children }) => {
     const { user, activeEmpresa, loading } = useAuth();
     if (loading) return <FallbackLoader />;
@@ -122,11 +135,48 @@ const FallbackLoader = () => (
 const isElectron = navigator.userAgent.toLowerCase().indexOf(' electron/') > -1;
 const Router = isElectron ? HashRouter : BrowserRouter;
 
+const FileLaunchHandler = () => {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const handleFile = async (fileOrBuffer, fileName) => {
+            window.externalFileToOpen = { data: fileOrBuffer, name: fileName };
+            navigate('/media-suite/pdf');
+        };
+
+        // PWA Launch Queue
+        if ('launchQueue' in window) {
+            window.launchQueue.setConsumer(async (launchParams) => {
+                if (!launchParams.files.length) return;
+                const fileHandle = launchParams.files[0];
+                const file = await fileHandle.getFile();
+                handleFile(file, file.name);
+            });
+        }
+
+        // Electron IPC
+        if (window.electronAPI && window.electronAPI.onExternalFileOpen) {
+            const cleanup = window.electronAPI.onExternalFileOpen(async (filePath) => {
+                if (filePath && window.electronAPI.readFile) {
+                    const result = await window.electronAPI.readFile(filePath);
+                    if (result.success) {
+                        handleFile(result.buffer, result.name);
+                    }
+                }
+            });
+            return cleanup;
+        }
+    }, [navigate]);
+
+    return null;
+};
+
 function App() {
     return (
         <AuthProvider>
             <RequestProvider>
                 <Router>
+                    <FileLaunchHandler />
                     <Suspense fallback={<FallbackLoader />}>
                         <Routes>
                             <Route path="/login" element={<Login />} />
@@ -149,16 +199,29 @@ function App() {
                             <Route path="/funcion-ia" element={<PrivateRouteFullHeight><FuncionIA /></PrivateRouteFullHeight>} />
                             <Route path="/ventas" element={<PrivateRoute><Ventas /></PrivateRoute>} />
                             <Route path="/ventas/cotizaciones-emitidas" element={<PrivateRoute><CotizacionesEmitidas /></PrivateRoute>} />
+                            <Route path="/ventas/por-facturar" element={<PrivateRoute><PorFacturar /></PrivateRoute>} />
+                            <Route path="/ventas/facturacion" element={<PrivateRoute><Facturacion /></PrivateRoute>} />
+                            <Route path="/ventas/directas" element={<PrivateRoute><VentasDirectas /></PrivateRoute>} />
                             <Route path="/ventas/ordenes-compra" element={<PrivateRoute><OrdenesCompraVentas /></PrivateRoute>} />
                             <Route path="/ventas/crm" element={<PrivateRoute><Crm /></PrivateRoute>} />
                             <Route path="/ventas/clientes-frecuentes" element={<PrivateRoute><ClientesFrecuentes /></PrivateRoute>} />
-                            <Route path="/finanzas" element={<PrivateRoute><Finanzas /></PrivateRoute>} />
-                            <Route path="/finanzas/cuentas-cobrar" element={<PrivateRoute><CuentasPorCobrar /></PrivateRoute>} />
-                            <Route path="/finanzas/egresos" element={<PrivateRoute><Egresos /></PrivateRoute>} />
-                            <Route path="/finanzas/cotizaciones-recibidas" element={<PrivateRoute><CotizacionesRecibidas /></PrivateRoute>} />
+                            <Route path="/finanzas" element={<PrivateRouteFullHeight><Finanzas /></PrivateRouteFullHeight>} />
+                            <Route path="/finanzas/cuentas-cobrar" element={<PrivateRouteFullHeight><CuentasPorCobrar /></PrivateRouteFullHeight>} />
+                            <Route path="/finanzas/egresos" element={<PrivateRouteFullHeight><Egresos /></PrivateRouteFullHeight>} />
+                            <Route path="/finanzas/cotizaciones-recibidas" element={<PrivateRouteFullHeight><CotizacionesRecibidas /></PrivateRouteFullHeight>} />
+                            
+                            <Route path="/finanzas/transacciones" element={<PrivateRouteFullHeight><Transacciones /></PrivateRouteFullHeight>} />
+                            <Route path="/finanzas/categorias" element={<PrivateRouteFullHeight><Categorias /></PrivateRouteFullHeight>} />
+                            <Route path="/finanzas/planificacion" element={<PrivateRouteFullHeight><Planificacion /></PrivateRouteFullHeight>} />
+                            <Route path="/finanzas/asistente-ia" element={<PrivateRouteFullHeight><AsistenteIA /></PrivateRouteFullHeight>} />
+                            <Route path="/finanzas/administrador" element={<PrivateRouteFullHeight><Administrador /></PrivateRouteFullHeight>} />
+
                             <Route path="/workflow-ai" element={<PrivateRouteNoLayout><WorkFlowAIDashboard /></PrivateRouteNoLayout>} />
                             <Route path="/almacenes" element={<PrivateRouteNoLayout><Almacenes /></PrivateRouteNoLayout>} />
                             <Route path="/procesos" element={<PrivateRoute><ProcesosDashboard /></PrivateRoute>} />
+                            <Route path="/procesos/dashboard" element={<PrivateRoute><ProcesosDashboardMetrics /></PrivateRoute>} />
+                            <Route path="/procesos/estudio-tiempos" element={<PrivateRoute><EstudioTiempos /></PrivateRoute>} />
+                            <Route path="/procesos/:id/estudio-tiempos/:fase/:taskId" element={<PrivateRoute><EstudioTiempos /></PrivateRoute>} />
                             <Route path="/procesos/:id" element={<PrivateRoute><ProcesoDetail /></PrivateRoute>} />
                             <Route path="/branding" element={<PrivateRouteBrandingNoLayout><BrandingHub /></PrivateRouteBrandingNoLayout>} />
                             <Route path="/branding/paletas" element={<PrivateRouteBrandingNoLayout><Paletas /></PrivateRouteBrandingNoLayout>} />
@@ -173,6 +236,7 @@ function App() {
                             <Route path="/media-suite/audio" element={<PrivateRouteNoLayout><AudioEditor /></PrivateRouteNoLayout>} />
                             <Route path="/media-suite/video" element={<PrivateRouteNoLayout><VideoEditor /></PrivateRouteNoLayout>} />
                             <Route path="/media-suite/pdf" element={<PrivateRouteNoLayout><PdfEditor /></PrivateRouteNoLayout>} />
+                            <Route path="/media-suite/converter" element={<PrivateRouteNoLayout><FileConverter /></PrivateRouteNoLayout>} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                     </Suspense>
