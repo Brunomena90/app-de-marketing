@@ -2,6 +2,8 @@
   "name": "content-request-app",
   "private": true,
   "version": "0.0.5",
+  "author": "Bruno Mena",
+  "description": "App de marketing y gestión de solicitudes",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
