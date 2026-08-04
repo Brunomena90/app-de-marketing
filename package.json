@@ -115,7 +115,8 @@
         "provider": "github",
         "owner": "Brunomena90",
         "repo": "app-de-marketing",
-        "releaseType": "release"
+        "releaseType": "release",
+        "private": false
       }
     ]
   }
