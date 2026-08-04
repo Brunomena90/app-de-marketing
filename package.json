@@ -1,7 +1,7 @@
 {
   "name": "content-request-app",
   "private": true,
-  "version": "0.0.7",
+  "version": "0.0.8",
   "author": "Bruno Mena",
   "repository": "https://github.com/Brunomena90/app-de-marketing",
   "description": "App de marketing y gestión de solicitudes",
