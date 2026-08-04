@@ -3,7 +3,7 @@ import { getFirestore, initializeFirestore, persistentLocalCache, persistentMult
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
+export const firebaseConfig = {
     apiKey: "AIzaSyDhL8LWQItDmokxBekyqYD2liK7aWk-rag",
     authDomain: "gci-app-9twxq.firebaseapp.com",
     projectId: "gci-app-9twxq",

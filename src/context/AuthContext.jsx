@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, query, where, getDocs, onSnapshot, doc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 const AuthContext = createContext();
 
@@ -185,16 +186,25 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         setLoading(true);
         try {
+            // 1. Iniciar sesión segura con Firebase Auth
+            await signInWithEmailAndPassword(auth, email, password);
+
+            // 2. Traer permisos del usuario
             const q = query(collection(db, 'users'), where('email', '==', email));
             const querySnapshot = await getDocs(q);
 
-            if (querySnapshot.empty) throw new Error('El correo no existe');
+            if (querySnapshot.empty) {
+                await signOut(auth);
+                throw new Error('El correo no existe en la base de datos de permisos');
+            }
 
             const userDoc = querySnapshot.docs[0];
             const userData = { id: userDoc.id, ...userDoc.data() };
 
-            if (userData.password !== password) throw new Error('La contraseña es incorrecta');
-            if (userData.status === 'paused') throw new Error('Tu cuenta ha sido pausada');
+            if (userData.status === 'paused') {
+                await signOut(auth);
+                throw new Error('Tu cuenta ha sido pausada');
+            }
 
             const sessionUser = {
                 uid: userData.id,
@@ -224,7 +234,14 @@ export const AuthProvider = ({ children }) => {
 
         } catch (error) {
             console.error('Login error:', error);
-            throw error;
+            // Mensajes de error más amigables
+            let errorMsg = 'Error al iniciar sesión';
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                errorMsg = 'El correo o la contraseña son incorrectos';
+            } else if (error.message) {
+                errorMsg = error.message;
+            }
+            throw new Error(errorMsg);
         } finally {
             setLoading(false);
         }

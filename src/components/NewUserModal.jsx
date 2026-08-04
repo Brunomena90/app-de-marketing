@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { X, User, Mail, Briefcase, Shield, Layers, Save, Edit2, Lock, Eye, EyeOff, Check, Search, Building2, ChevronDown, Sparkles, LineChart } from 'lucide-react';
-import { addDoc, updateDoc, doc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { addDoc, setDoc, updateDoc, doc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db, firebaseConfig } from '../firebase';
+import { initializeApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { toast } from 'sonner';
 import { SUPER_ROLES, SUPER_ROLE_LABELS, useAuth, isSuperUser1, isSuperUser, isSuperUser5 } from '../context/AuthContext';
 import { APP_MODULES } from '../lib/constants';
@@ -214,14 +216,55 @@ const NewUserModal = ({ isOpen, onClose, userToEdit = null, defaultEmpresa = nul
             Object.keys(userData).forEach(key => userData[key] === undefined && delete userData[key]);
 
             if (userToEdit) {
+                // Si el admin cambió el correo o la contraseña, debemos actualizarlo también en Firebase Auth
+                if (userData.email !== userToEdit.email || userData.password !== userToEdit.password) {
+                    try {
+                        const secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp' + Date.now());
+                        const secondaryAuth = getAuth(secondaryApp);
+                        
+                        // Iniciamos sesión en la app secundaria con las credenciales ANTIGUAS
+                        const { signInWithEmailAndPassword, updateEmail, updatePassword } = await import('firebase/auth');
+                        const userCred = await signInWithEmailAndPassword(secondaryAuth, userToEdit.email, userToEdit.password);
+                        
+                        // Actualizamos los datos en Auth
+                        if (userData.email !== userToEdit.email) {
+                            await updateEmail(userCred.user, userData.email);
+                        }
+                        if (userData.password !== userToEdit.password) {
+                            await updatePassword(userCred.user, userData.password);
+                        }
+                        
+                        await signOut(secondaryAuth);
+                    } catch (authError) {
+                        throw new Error('No se pudo sincronizar con Firebase Auth (revisa que el correo y contraseña antiguos sean correctos): ' + authError.message);
+                    }
+                }
+
                 await updateDoc(doc(db, 'users', userToEdit.id), userData);
                 toast.success('Usuario actualizado correctamente');
             } else {
-                await addDoc(collection(db, 'users'), {
-                    ...userData,
-                    createdAt: new Date().toISOString()
-                });
-                toast.success('Usuario creado exitosamente');
+                try {
+                    // Creamos una app secundaria para no cerrar la sesión del admin actual
+                    const secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp' + Date.now());
+                    const secondaryAuth = getAuth(secondaryApp);
+                    
+                    // Crear usuario en Firebase Auth
+                    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.password);
+                    const newUid = userCredential.user.uid;
+                    
+                    await signOut(secondaryAuth); // Desconectar app secundaria
+                    
+                    // Guardar info adicional en Firestore usando el UID de Auth como ID de documento
+                    await setDoc(doc(db, 'users', newUid), {
+                        ...userData,
+                        id: newUid,
+                        createdAt: new Date().toISOString()
+                    });
+                    
+                    toast.success('Usuario creado exitosamente');
+                } catch (authError) {
+                    throw new Error('Error al crear cuenta: ' + authError.message);
+                }
             }
             onClose();
         } catch (error) {

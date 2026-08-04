@@ -202,6 +202,23 @@ const Users = () => {
                 }
             }
 
+            // 1. ELIMINAR DE FIREBASE AUTH (si es posible)
+            try {
+                const { initializeApp } = await import('firebase/app');
+                const { getAuth, signInWithEmailAndPassword, deleteUser, signOut } = await import('firebase/auth');
+                const { firebaseConfig } = await import('../firebase');
+
+                const secondaryApp = initializeApp(firebaseConfig, 'SecondaryAppDelete' + Date.now());
+                const secondaryAuth = getAuth(secondaryApp);
+                const userCred = await signInWithEmailAndPassword(secondaryAuth, targetUser.email, targetUser.password);
+                await deleteUser(userCred.user);
+                await signOut(secondaryAuth);
+                console.log("Usuario eliminado de Firebase Auth");
+            } catch (authError) {
+                console.warn("No se pudo eliminar de Firebase Auth (posiblemente ya no exista o clave cambiada):", authError);
+            }
+
+            // 2. ELIMINAR DE FIRESTORE
             await deleteDoc(doc(db, "users", deleteModal.id));
             toast.success("Usuario eliminado y datos limpiados");
             setDeleteModal({ open: false, id: null });

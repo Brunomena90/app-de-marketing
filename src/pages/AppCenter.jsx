@@ -319,7 +319,6 @@ const AppCenter = () => {
 
     const isElectron = navigator.userAgent.toLowerCase().includes('electron');
 
-
     const [allEmpresas, setAllEmpresas] = useState([]);
 
     useEffect(() => {
