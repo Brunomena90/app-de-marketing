@@ -22,8 +22,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openFloatingWindow: (route) => ipcRenderer.invoke('openFloatingWindow', route),
     // Almacenamiento local (Hub)
     selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
+    selectFile: (options) => ipcRenderer.invoke('dialog:selectFile', options),
     saveFileToDisk: (args) => ipcRenderer.invoke('fs:saveFile', args),
     readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
+    processPsdLocally: (filePath) => ipcRenderer.invoke('fs:processPsdLocally', filePath),
     convertDocument: (args) => ipcRenderer.invoke('fs:convertDocument', args),
     // Auto-updater
     checkForUpdates: () => ipcRenderer.invoke('updater:check'),

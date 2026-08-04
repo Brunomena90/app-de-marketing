@@ -20,11 +20,13 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
+    "ag-psd": "^31.0.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "electron-updater": "^6.8.9",
     "firebase": "^12.6.0",
     "html2canvas": "^1.4.1",
+    "jimp": "^1.6.1",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "konva": "^8.4.3",
@@ -78,6 +80,10 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "electron/psd_extractor.py",
+        "to": "electron/psd_extractor.py"
       }
     ],
     "files": [

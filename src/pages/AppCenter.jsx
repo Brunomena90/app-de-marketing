@@ -11,7 +11,7 @@ import {
     ChevronDown, Search, Lock, Check, PowerOff,
     TrendingUp, BadgeDollarSign, ShoppingCart, UserCheck,
     Palette, Type, Image, Layers, User, Wallet, TrendingDown,
-    Rocket, Package, ArrowRightLeft, BarChart3, DownloadCloud, PanelRight, GitMerge, Settings2
+    Rocket, Package, ArrowRightLeft, BarChart3, DownloadCloud, PanelRight, GitMerge, Settings2, Folder
 } from 'lucide-react';
 
 import AppIcon from '../components/AppIcon';
@@ -189,6 +189,24 @@ const MODULES = [
         ],
         badge: 'Gestión Operativa',
         badgeColor: 'bg-cyan-500/20 text-cyan-200',
+    },
+    {
+        id: 'portafolios',
+        name: 'Portafolios',
+        label: 'Portafolios de Trabajo',
+        description: 'Gestiona tus portafolios y material multimedia conectado directamente a tu cuenta de Google Drive.',
+        route: '/portafolios',
+        color: 'from-fuchsia-600 to-purple-800',
+        shadowColor: 'shadow-fuchsia-500/30',
+        ringColor: 'ring-fuchsia-400/30',
+        bgGlow: 'bg-fuchsia-500',
+        icon: <Folder size={36} className="text-white" />,
+        features: [
+            { icon: <Folder size={14} />, label: 'Carpetas' },
+            { icon: <Image size={14} />, label: 'Multimedia' },
+        ],
+        badge: 'Archivos & Media',
+        badgeColor: 'bg-fuchsia-500/20 text-fuchsia-200',
     }
 ];
 
@@ -416,7 +434,7 @@ const AppCenter = () => {
                 case 'error':
                     console.error('Error de actualización:', data);
                     setUpdateStatus('idle');
-                    toast.error('Error al actualizar', { description: 'Ocurrió un problema al descargar o buscar actualizaciones.' });
+                    toast.error('Error al actualizar', { description: typeof data === 'string' ? data : JSON.stringify(data) });
                     break;
                 default:
                     break;

@@ -2,13 +2,23 @@ import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import os from 'os';
 import { setupAIManager } from './aiManager.js';
 import { autoUpdater } from 'electron-updater';
+import { readPsd, initializeCanvas } from 'ag-psd';
+import { Jimp } from 'jimp';
 
+// Mock Canvas para ag-psd en el backend (solo extrae ImageData)
+initializeCanvas(
+  () => { throw new Error('Canvas no soportado nativamente en el backend') },
+  (width, height) => ({ width, height, data: new Uint8Array(width * height * 4) })
+);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Increase V8 Memory limit to 8GB to support huge PSB files
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=8192');
 
 // Ensure app only runs one instance
 const gotTheLock = app.requestSingleInstanceLock();
@@ -45,6 +55,7 @@ if (!gotTheLock) {
       width: 1200,
       height: 800,
       show: false,
+      title: 'Artories Management Suite (Escritorio)',
       autoHideMenuBar: true, // Hides the standard File Edit View menus
       icon: path.join(__dirname, process.env.VITE_DEV_SERVER_URL ? '../public/pwa-512x512.png' : '../dist/pwa-512x512.png'),
       webPreferences: {
@@ -52,6 +63,11 @@ if (!gotTheLock) {
         contextIsolation: true,
         preload: path.join(__dirname, 'preload.js')
       }
+    });
+
+    // Prevent the web page <title> from overriding our desktop title
+    mainWindow.on('page-title-updated', (evt) => {
+      evt.preventDefault();
     });
 
     // Development vs Production
@@ -135,6 +151,14 @@ if (!gotTheLock) {
       return result;
     });
 
+    ipcMain.handle('dialog:selectFile', async (event, options) => {
+      const result = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        ...options
+      });
+      return result;
+    });
+
     ipcMain.handle('fs:saveFile', async (event, { buffer, folderPath, fileName }) => {
       try {
         const fullPath = path.join(folderPath, fileName);
@@ -154,6 +178,60 @@ if (!gotTheLock) {
         console.error('Error reading file via IPC:', error);
         return { success: false, error: error.message };
       }
+    });
+
+    // Motor Local PSD (Python)
+    ipcMain.handle('fs:processPsdLocally', async (event, filePath) => {
+      return new Promise((resolve) => {
+        try {
+          const tempDir = os.tmpdir();
+          
+          // La ruta al script de python
+          let scriptPath = path.join(__dirname, '../electron/psd_extractor.py');
+          if (!fs.existsSync(scriptPath)) {
+            // Fallback para producción si el script está en otro lado
+            scriptPath = path.join(process.resourcesPath, 'electron', 'psd_extractor.py');
+          }
+          
+          // Ejecutamos Python (asumiendo que 'python' está en el PATH)
+          // El script extraerá las imágenes al tempDir y devolverá un JSON
+          execFile('python', [scriptPath, filePath, tempDir], { maxBuffer: 1024 * 1024 * 50 }, (error, stdout, stderr) => {
+            if (error) {
+              console.error('Python execution error:', error);
+              resolve({ success: false, error: error.message || String(stderr) });
+              return;
+            }
+            
+            try {
+              const result = JSON.parse(stdout.trim());
+              
+              // Convertir file:/// a DataURL para evitar restricciones de webSecurity de Electron
+              if (result.success && result.layers) {
+                for (const layer of result.layers) {
+                  if (layer.url && layer.url.startsWith('file:///')) {
+                    const localPath = layer.url.replace('file:///', '').replace(/\//g, '\\');
+                    if (fs.existsSync(localPath)) {
+                      const buffer = fs.readFileSync(localPath);
+                      layer.url = `data:image/png;base64,${buffer.toString('base64')}`;
+                      // Opcional: borrar el archivo temporal
+                      fs.unlinkSync(localPath);
+                    }
+                  }
+                }
+              }
+              
+              resolve(result);
+            } catch (parseError) {
+              console.error('Error parsing Python output:', parseError);
+              resolve({ success: false, error: 'Respuesta inválida del motor nativo' });
+            }
+          });
+          
+        } catch (error) {
+          console.error('Error in PSD handler:', error);
+          resolve({ success: false, error: error.message });
+        }
+      });
     });
 
     ipcMain.handle('fs:convertDocument', async (event, { buffer, fileName, toExt }) => {
@@ -248,7 +326,7 @@ if (!gotTheLock) {
           console.log('Quitting and installing...');
           app.quit();
       } else {
-          autoUpdater.quitAndInstall();
+          autoUpdater.quitAndInstall(true, true);
       }
     });
 

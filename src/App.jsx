@@ -39,6 +39,8 @@ const CuentasPorCobrar = lazy(() => import('./pages/finanzas/CuentasPorCobrar'))
 const Egresos = lazy(() => import('./pages/finanzas/Egresos'));
 const CotizacionesRecibidas = lazy(() => import('./pages/finanzas/CotizacionesRecibidas'));
 
+const Portafolios = lazy(() => import('./pages/portafolios/Portafolios'));
+const PortafolioDetail = lazy(() => import('./pages/portafolios/PortafolioDetail'));
 const Transacciones = lazy(() => import('./pages/finanzas/components/Transacciones'));
 const Categorias = lazy(() => import('./pages/finanzas/components/Categorias'));
 const Planificacion = lazy(() => import('./pages/finanzas/components/Planificacion'));
@@ -180,6 +182,7 @@ function App() {
                     <Suspense fallback={<FallbackLoader />}>
                         <Routes>
                             <Route path="/login" element={<Login />} />
+                            <Route path="/p/:empresaId" element={<Portafolios publicView={true} />} />
                             <Route path="/encuesta/:id" element={<PublicSurvey />} />
                             <Route path="/" element={<PrivateRouteNoLayout><AppCenter /></PrivateRouteNoLayout>} />
                             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
@@ -237,6 +240,10 @@ function App() {
                             <Route path="/media-suite/video" element={<PrivateRouteNoLayout><VideoEditor /></PrivateRouteNoLayout>} />
                             <Route path="/media-suite/pdf" element={<PrivateRouteNoLayout><PdfEditor /></PrivateRouteNoLayout>} />
                             <Route path="/media-suite/converter" element={<PrivateRouteNoLayout><FileConverter /></PrivateRouteNoLayout>} />
+                            
+                            <Route path="/portafolios" element={<PrivateRouteNoLayout><Portafolios /></PrivateRouteNoLayout>} />
+                            <Route path="/portafolios/:id" element={<PrivateRouteNoLayout><PortafolioDetail /></PrivateRouteNoLayout>} />
+                            
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                     </Suspense>
