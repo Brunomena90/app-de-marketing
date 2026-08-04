@@ -307,10 +307,6 @@ const AppCenter = () => {
     const [loadingEmpresas, setLoadingEmpresas] = useState(true);
     const [superUsers5, setSuperUsers5] = useState([]);
     
-    // --- ESTADOS DE ACTUALIZACIÓN ---
-    const [updateStatus, setUpdateStatus] = useState('idle'); // idle, checking, available, downloading, downloaded
-    const [downloadProgress, setDownloadProgress] = useState(0);
-    
     // --- ESTADOS DROPDOWN PERSONALIZADO ---
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -407,58 +403,12 @@ const AppCenter = () => {
     }, []);
 
     // --- AUTO UPDATER LISTENER ---
-    useEffect(() => {
-        if (!window.electronAPI?.isElectron || !window.electronAPI.onUpdaterEvent) return;
-
-        const unsubscribe = window.electronAPI.onUpdaterEvent((eventName, data) => {
-            switch(eventName) {
-                case 'update-available':
-                    setUpdateStatus('available');
-                    toast.info('Actualización Disponible', { description: 'Hay una nueva versión de la app de escritorio lista para instalar.' });
-                    break;
-                case 'update-not-available':
-                    setUpdateStatus('idle');
-                    toast.success('Software Actualizado', { description: 'Tienes la última versión de la aplicación instalada.' });
-                    break;
-                case 'download-progress':
-                    setUpdateStatus('downloading');
-                    if (data?.percent) {
-                        setDownloadProgress(Math.round(data.percent));
-                    }
-                    break;
-                case 'update-downloaded':
-                    setUpdateStatus('downloaded');
-                    toast.success('Descarga Completa', { description: 'La actualización está lista para ser instalada.' });
-                    break;
-                case 'error':
-                    console.error('Error de actualización:', data);
-                    setUpdateStatus('idle');
-                    toast.error('Error al actualizar', { description: typeof data === 'string' ? data : JSON.stringify(data) });
-                    break;
-                default:
-                    break;
-            }
-        });
-        return unsubscribe;
-    }, []);
+    // (Movido a GlobalUpdater.jsx para que funcione globalmente en toda la app)
 
     const handleCheckUpdate = () => {
         if (!window.electronAPI?.isElectron) return;
-        setUpdateStatus('checking');
-        toast('Buscando actualizaciones...', { description: 'Comprobando si existe una nueva versión de la aplicación...' });
-        window.electronAPI.checkForUpdates();
-    };
-
-    const handleDownloadUpdate = () => {
-        if (!window.electronAPI?.isElectron) return;
-        setUpdateStatus('downloading');
-        setDownloadProgress(0);
-        window.electronAPI.downloadUpdate();
-    };
-
-    const handleInstallUpdate = () => {
-        if (!window.electronAPI?.isElectron) return;
-        window.electronAPI.quitAndInstall();
+        // Disparar evento para que GlobalUpdater lo reciba y muestre el UI
+        window.dispatchEvent(new Event('trigger-update-check'));
     };
 
     const handleEnterModule = (route) => {
@@ -534,13 +484,12 @@ const AppCenter = () => {
                     {isElectron && (
                         <button
                             onClick={handleCheckUpdate}
-                            disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                            className={`hidden sm:flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/20 transition-all cursor-pointer shadow-lg shadow-indigo-500/10 ${(updateStatus === 'checking' || updateStatus === 'downloading') ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title="Actualizaciones de la App de Escritorio"
+                            className="hidden sm:flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/20 transition-all cursor-pointer shadow-lg shadow-indigo-500/10"
+                            title="Buscar Actualizaciones de la App de Escritorio"
                         >
-                            <DownloadCloud size={18} className={updateStatus === 'checking' ? 'animate-pulse' : ''} />
+                            <DownloadCloud size={18} />
                             <span className="text-[10px] font-bold uppercase tracking-wider">
-                                {updateStatus === 'checking' ? 'Buscando...' : updateStatus === 'downloading' ? 'Descargando' : 'Actualizar'}
+                                Actualizar
                             </span>
                         </button>
                     )}
@@ -773,48 +722,7 @@ const AppCenter = () => {
             </main>
 
             {/* ── MODAL DE ACTUALIZACIÓN ── */}
-            {updateStatus !== 'idle' && updateStatus !== 'checking' && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center text-indigo-400 mb-4 shadow-inner">
-                            <DownloadCloud size={32} />
-                        </div>
-                        
-                        {updateStatus === 'available' && (
-                            <>
-                                <h3 className="text-xl font-bold text-white mb-2">¡Nueva actualización disponible!</h3>
-                                <p className="text-gray-400 text-sm mb-6">Hemos lanzado una nueva versión del software. ¿Deseas descargar e instalarla ahora?</p>
-                                <div className="flex gap-3 w-full">
-                                    <button onClick={() => setUpdateStatus('idle')} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors font-medium">Más tarde</button>
-                                    <button onClick={handleDownloadUpdate} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-bold shadow-lg shadow-indigo-500/20">Descargar</button>
-                                </div>
-                            </>
-                        )}
-                        
-                        {updateStatus === 'downloading' && (
-                            <>
-                                <h3 className="text-xl font-bold text-white mb-2">Descargando actualización...</h3>
-                                <p className="text-gray-400 text-sm mb-6">Por favor, espera mientras preparamos la nueva versión.</p>
-                                <div className="w-full bg-black/50 rounded-full h-3 mb-2 border border-white/5 overflow-hidden">
-                                    <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%` }}></div>
-                                </div>
-                                <span className="text-xs text-indigo-400 font-bold">{downloadProgress}%</span>
-                            </>
-                        )}
-
-                        {updateStatus === 'downloaded' && (
-                            <>
-                                <h3 className="text-xl font-bold text-white mb-2">¡Descarga completada!</h3>
-                                <p className="text-gray-400 text-sm mb-6">La nueva versión está lista para instalarse. La aplicación se reiniciará.</p>
-                                <button onClick={handleInstallUpdate} className="w-full px-4 py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors font-bold shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
-                                    <Check size={18} /> Instalar y Reiniciar
-                                </button>
-                                <button onClick={() => setUpdateStatus('idle')} className="w-full mt-3 px-4 py-2 text-gray-500 hover:text-white transition-colors text-xs">Instalar la próxima vez que abra la app</button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
+            {/* Movido a GlobalUpdater para disponibilidad en toda la app */}
 
             {/* ── FOOTER ── */}
             <footer className="relative z-10 text-center pb-6">

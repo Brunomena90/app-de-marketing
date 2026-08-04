@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import Layout from './components/Layout';
 import AppIcon from './components/AppIcon'; // IMPORT NEW ISOTYPE
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import GlobalUpdater from './components/GlobalUpdater';
 
 // --- PWA y Optimización: Carga Perezosa (Lazy Loading) de Páginas ---
 // Esto divide el código en fragmentos (chunks) más pequeños, haciendo que la carga inicial sea ultrarrápida.
@@ -248,6 +249,7 @@ function App() {
                         </Routes>
                     </Suspense>
                     <PWAInstallPrompt />
+                    <GlobalUpdater />
                     <Toaster position="top-right" richColors />
                 </Router>
             </RequestProvider>
