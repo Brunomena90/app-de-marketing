@@ -178,7 +178,19 @@ const Requests = () => {
         let statusColor = 'bg-gray-100 text-gray-500';
         let barColor = 'bg-gray-200';
 
-        if (req.published) {
+        let isAutoPublished = false;
+        if (req.status && req.status.startsWith('Completado')) {
+            const pubDateStr = req.publicationDate || req.publishDate || req.fechaPublicacion;
+            if (pubDateStr) {
+                const pubTimeStr = req.publicationTime || req.horaPublicacion || '00:00';
+                const pubDateTime = new Date(`${pubDateStr}T${pubTimeStr}`);
+                if (!isNaN(pubDateTime.getTime()) && new Date() >= pubDateTime) {
+                    isAutoPublished = true;
+                }
+            }
+        }
+
+        if (req.published || isAutoPublished) {
             statusLabel = 'Publicado';
             statusColor = 'bg-red-500 text-white border border-red-600 shadow-sm';
             barColor = 'bg-red-500';
@@ -200,7 +212,7 @@ const Requests = () => {
             barColor = 'bg-blue-500';
         }
 
-        return { statusLabel, statusColor, barColor, percent, hasScript: total > 0 };
+        return { statusLabel, statusColor, barColor, percent, hasScript: total > 0, isAutoPublished };
     };
 
     // --- FILTRO INTELIGENTE ---
@@ -480,7 +492,7 @@ const Requests = () => {
             {/* GRID TARJETAS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filtered.map(req => {
-                    const { statusLabel, statusColor, barColor, percent, hasScript } = getCardStatus(req);
+                    const { statusLabel, statusColor, barColor, percent, hasScript, isAutoPublished } = getCardStatus(req);
                     const displayDate = normalizeDate(req.requestDate || req.createdAt) || 'Sin fecha';
 
                     return (
@@ -508,18 +520,20 @@ const Requests = () => {
                                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${statusColor}`}>{statusLabel}</span>
                                     <div className="flex items-center gap-2">
                                         {(req.status && req.status.startsWith('Completado') && (isAdmin || user?.role === 'admin' || user?.editorFunction || user?.analystFunction)) && (
-                                            <label onClick={(e) => e.stopPropagation()} className={`flex items-center gap-1.5 cursor-pointer px-2 py-0.5 rounded-full border transition-colors ${req.published ? 'bg-red-50 border-red-200 hover:bg-red-100' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}`}>
+                                            <label onClick={(e) => { e.stopPropagation(); if(isAutoPublished) e.preventDefault(); }} className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-colors ${(req.published || isAutoPublished) ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'} ${isAutoPublished ? 'cursor-default opacity-80' : 'cursor-pointer hover:bg-red-100'}`}>
                                                 <input 
                                                     type="checkbox" 
-                                                    checked={!!req.published} 
+                                                    checked={req.published || isAutoPublished} 
+                                                    disabled={isAutoPublished}
                                                     onChange={async (e) => {
+                                                        if (isAutoPublished) return;
                                                         const isChecked = e.target.checked;
                                                         await updateDoc(doc(db, "solicitudes_contenido", req.id), { published: isChecked });
                                                         toast.success(isChecked ? "Marcado como Publicado" : "Desmarcado como Publicado");
                                                     }}
-                                                    className={`w-3 h-3 rounded focus:ring-2 ${req.published ? 'text-red-600 border-red-300 focus:ring-red-500' : 'text-gray-400 border-gray-300 focus:ring-gray-400'}`} 
+                                                    className={`w-3 h-3 rounded focus:ring-2 ${(req.published || isAutoPublished) ? 'text-red-600 border-red-300 focus:ring-red-500' : 'text-gray-400 border-gray-300 focus:ring-gray-400'} ${isAutoPublished ? 'cursor-default' : 'cursor-pointer'}`} 
                                                 />
-                                                <span className={`text-[10px] font-bold uppercase tracking-wide ${req.published ? 'text-red-700' : 'text-gray-500'}`}>Publicado</span>
+                                                <span className={`text-[10px] font-bold uppercase tracking-wide ${(req.published || isAutoPublished) ? 'text-red-700' : 'text-gray-500'}`}>Publicado {isAutoPublished && '(Auto)'}</span>
                                             </label>
                                         )}
                                         {user?.role !== 'solicitante' && <span className="text-xs font-bold text-gray-400">{percent}%</span>}
