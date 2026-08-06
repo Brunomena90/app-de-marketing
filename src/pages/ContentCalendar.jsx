@@ -164,7 +164,67 @@ const ContentCalendar = () => {
                     }
                 }
             }
-            // 3. Fecha de Solicitud/Creación (Siempre visible)
+            // 3. Fecha de Publicación (Prioridad 3)
+            const pubDate = parseDate(req.publicationDate || req.publishDate || req.fechaPublicacion);
+            if (pubDate && !isNaN(pubDate)) {
+                let start = new Date(pubDate);
+                let end = new Date(pubDate);
+                let allDay = true;
+                const pubTime = req.publicationTime || req.horaPublicacion;
+                if (pubTime && typeof pubTime === 'string') {
+                    const parts = pubTime.split(':');
+                    if (parts.length >= 2) {
+                        start.setHours(parseInt(parts[0]) || 9, parseInt(parts[1]) || 0);
+                        end = new Date(start);
+                        end.setHours(start.getHours() + 1); // add 1 hour by default for duration
+                        allDay = false;
+                    }
+                }
+                
+                list.push({
+                    title: `📢 [PUB] ${req.title}`,
+                    start: start,
+                    end: end,
+                    allDay: allDay,
+                    color: '#e11d48', // Rojo
+                    resource: req
+                });
+            }
+
+            // 4. Fechas de Post-Producción
+            if (req.postRecordings && req.postRecordings.length > 0) {
+                req.postRecordings.forEach((rec, idx) => {
+                    const recStart = parseDate(rec.date);
+                    if (recStart && !isNaN(recStart)) {
+                        const start = new Date(recStart);
+                        if (!rec.startTime || typeof rec.startTime !== 'string') {
+                            start.setHours(9, 0);
+                        } else {
+                            const parts = rec.startTime.split(':');
+                            start.setHours(parseInt(parts[0]) || 9, parseInt(parts[1]) || 0);
+                        }
+                        const end = new Date(recStart);
+                        if (!rec.endTime || typeof rec.endTime !== 'string') {
+                            end.setHours(11, 0);
+                        } else {
+                            const parts = rec.endTime.split(':');
+                            end.setHours(parseInt(parts[0]) || 11, parseInt(parts[1]) || 0);
+                        }
+                        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                            list.push({
+                                title: `✂️ [POST] ${req.title} ${req.postRecordings.length > 1 ? `(${idx + 1}/${req.postRecordings.length})` : ''}`,
+                                start: start,
+                                end: end,
+                                allDay: !rec.startTime,
+                                color: '#9333ea', // Morado
+                                resource: req
+                            });
+                        }
+                    }
+                });
+            }
+
+            // 5. Fecha de Solicitud/Creación (Siempre visible)
             const created = parseDate(req.requestDate || req.createdAt);
             if (created && !isNaN(created)) {
                 list.push({
@@ -195,36 +255,58 @@ const ContentCalendar = () => {
     });
 
     return (
-        <div {...handlers} className="h-[calc(100vh-120px)] bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+        <div {...handlers} className="min-h-screen bg-[#0a0a0a] p-6 rounded-xl shadow-sm border border-[#2a2a2a] flex flex-col text-gray-200">
             <style>{`
-                .rbc-month-row { min-height: 120px !important; }
+                .rbc-month-view { min-height: 800px !important; border-color: #2a2a2a !important; }
+                .rbc-month-row { min-height: 150px !important; border-color: #2a2a2a !important; }
+                .rbc-day-bg { border-color: #2a2a2a !important; }
+                .rbc-day-bg:hover { background-color: transparent !important; outline: 2px solid #3b82f6 !important; outline-offset: -2px; z-index: 10; position: relative; }
+                .rbc-header { border-color: #2a2a2a !important; padding: 12px 0 !important; font-weight: 700 !important; font-size: 0.8rem !important; text-transform: uppercase !important; color: #9ca3af !important; }
                 .rbc-event { padding: 0 !important; background: transparent !important; }
-                .rbc-selected-cell { background-color: rgba(59, 130, 246, 0.05) !important; }
-                .rbc-today { background-color: rgba(59, 130, 246, 0.02) !important; }
-                .rbc-header { padding: 10px 0 !important; font-weight: 700 !important; font-size: 0.75rem !important; text-transform: uppercase !important; color: #6b7280 !important; }
+                .rbc-selected-cell { background-color: rgba(59, 130, 246, 0.1) !important; }
+                .rbc-today { background-color: rgba(255, 255, 255, 0.05) !important; }
+                .rbc-off-range-bg { background-color: #111 !important; }
+                .rbc-date-cell { padding: 5px !important; font-weight: 500 !important; }
+                .rbc-btn-group button { color: #d1d5db !important; border-color: #374151 !important; }
+                .rbc-btn-group button:hover { background-color: #1f2937 !important; }
+                .rbc-btn-group .rbc-active { background-color: #374151 !important; box-shadow: inset 0 3px 5px rgba(0,0,0,0.2) !important; }
+                .rbc-toolbar-label { font-weight: 700 !important; color: #f3f4f6 !important; }
+                .rbc-time-view { border-color: #2a2a2a !important; min-height: 800px !important; }
+                .rbc-timeslot-group { border-color: #2a2a2a !important; }
+                .rbc-time-content { border-top-color: #2a2a2a !important; }
+                .rbc-time-header-content { border-left-color: #2a2a2a !important; }
+                .rbc-day-slot .rbc-time-slot { border-top-color: #2a2a2a !important; }
             `}</style>
             
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">CALENDARIO DE CONTENIDOS</h1>
-                    <p className="text-sm text-gray-500 mt-1">Visualización de todas las solicitudes por fecha</p>
+                    <h1 className="text-2xl font-bold text-gray-100">CALENDARIO DE CONTENIDOS</h1>
+                    <p className="text-sm text-gray-400 mt-1">Visualización de todas las solicitudes por fecha</p>
                 </div>
-                <div className="flex flex-wrap gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <div className="flex flex-wrap gap-4 bg-[#141414] p-3 rounded-lg border border-[#2a2a2a]">
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-[#2563eb]"></div>
-                        <span className="text-xs font-medium text-gray-600">Entrega Video</span>
+                        <span className="text-xs font-medium text-gray-300">Entrega Video</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-[#16a34a]"></div>
-                        <span className="text-xs font-medium text-gray-600">Entrega Diseño/Otros</span>
+                        <span className="text-xs font-medium text-gray-300">Entrega Diseño</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-[#f97316]"></div>
-                        <span className="text-xs font-medium text-gray-600">Grabación</span>
+                        <span className="text-xs font-medium text-gray-300">Grabación</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#9333ea]"></div>
+                        <span className="text-xs font-medium text-gray-300">Post-Producción</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-[#e11d48]"></div>
+                        <span className="text-xs font-medium text-gray-300">Publicación</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-[#9ca3af]"></div>
-                        <span className="text-xs font-medium text-gray-600">Fecha Solicitud</span>
+                        <span className="text-xs font-medium text-gray-300">Solicitud</span>
                     </div>
                 </div>
                 <div className="flex gap-2 ml-auto">
@@ -243,7 +325,7 @@ const ContentCalendar = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden rounded-xl border border-gray-100">
+            <div className="flex-1 w-full min-h-[800px] rounded-xl border border-[#2a2a2a] bg-[#141414] overflow-hidden">
                 <Calendar
                     localizer={localizer}
                     events={events}
@@ -251,8 +333,8 @@ const ContentCalendar = () => {
                     onNavigate={setCurrentDate}
                     view={view}
                     onView={setView}
-                    views={isMobile ? ['day'] : ['month', 'week']}
-                    style={{ height: '100%' }}
+                    views={isMobile ? ['day'] : ['month', 'week', 'day']}
+                    style={{ height: '100%', minHeight: '800px' }}
                     culture='es'
                     selectable
                     onSelectSlot={({ start }) => setModals({ ...modals, create: true, date: start })}

@@ -115,6 +115,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 2500
   },
   optimizeDeps: {
+    force: true,
     include: ['firebase/app', 'firebase/firestore'],
   },
 })

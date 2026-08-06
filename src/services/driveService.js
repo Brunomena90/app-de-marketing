@@ -1,7 +1,9 @@
 // src/services/driveService.js
 // Necesitarás reemplazar esto con el Client ID de tu proyecto de Google Cloud (OAuth 2.0 Client IDs)
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '539766146005-sfd7r7cqhni340jnl44vv9vf8nko4ogo.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
+const REFRESH_TOKEN = import.meta.env.VITE_GOOGLE_REFRESH_TOKEN;
+const SCOPES = 'https://www.googleapis.com/auth/drive';
 
 let tokenClient;
 let accessToken = null;
@@ -50,13 +52,36 @@ export const initGoogleDriveAuth = () => {
 /**
  * Solicita el token de acceso, mostrando el popup de Google si es necesario
  */
-export const authenticate = () => {
-  return new Promise((resolve, reject) => {
-    if (accessToken) {
-      resolve(accessToken);
-      return;
+export const authenticate = async () => {
+  if (accessToken) {
+    return accessToken;
+  }
+
+  // Si tenemos credenciales completas, intentamos autenticación silenciosa (Toma el control automático)
+  if (REFRESH_TOKEN && CLIENT_SECRET && CLIENT_ID) {
+    try {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+          refresh_token: REFRESH_TOKEN,
+          grant_type: 'refresh_token'
+        })
+      });
+      const data = await response.json();
+      if (data.access_token) {
+        accessToken = data.access_token;
+        return accessToken;
+      }
+    } catch (err) {
+      console.error('Error en autenticación silenciosa de Drive', err);
     }
-    
+  }
+  
+  // Fallback si no hay credenciales silenciosas o fallan: Usar popup
+  return new Promise((resolve, reject) => {
     if (!tokenClient) {
       initGoogleDriveAuth().then(() => {
         tokenClient.requestAccessToken({ prompt: 'consent' });
@@ -179,11 +204,14 @@ export const uploadFileToDrive = async (file, folderId = null) => {
 /**
  * Busca una carpeta por nombre. Si no existe, la crea.
  */
-export const findOrCreateFolder = async (folderName) => {
+export const findOrCreateFolder = async (folderName, parentId = null) => {
   if (!accessToken) await authenticate();
   
   // Buscar si la carpeta existe
-  const q = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  let q = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if (parentId) {
+    q += ` and '${parentId}' in parents`;
+  }
   const response = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
     {
@@ -202,7 +230,63 @@ export const findOrCreateFolder = async (folderName) => {
   }
   
   // Si no existe, crearla
-  return await createDriveFolder(folderName);
+  return await createDriveFolder(folderName, parentId);
+};
+
+/**
+ * Obtiene o crea la carpeta principal de la aplicación (ARTORIES MANAGEMENT SUIT)
+ */
+export const getAppRootFolder = async () => {
+  return await findOrCreateFolder('ARTORIES MANAGEMENT SUIT');
+};
+
+/**
+ * Sube un archivo a Google Drive (Carga Multiparte para archivos) con progreso
+ */
+export const uploadFileWithProgress = (file, folderId, onProgress) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (!accessToken) await authenticate();
+
+      const metadata = {
+        name: file.name,
+        mimeType: file.type,
+      };
+      
+      if (folderId) {
+        metadata.parents = [folderId];
+      }
+
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink', true);
+      xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          onProgress(percentComplete);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          reject(new Error('Error al subir el archivo a Google Drive'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Error de red al subir el archivo'));
+      
+      xhr.send(form);
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
 
 /**

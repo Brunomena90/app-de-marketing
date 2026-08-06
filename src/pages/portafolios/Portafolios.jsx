@@ -6,7 +6,7 @@ import { Settings, Plus, Trash2, UploadCloud, Save, ImageIcon, RefreshCw, X } fr
 import { db } from '../../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
-import { uploadFileToDrive, findOrCreateFolder, makeFilePublic, initGoogleDriveAuth, authenticate } from '../../services/driveService';
+import { uploadFileToDrive, getAppRootFolder, findOrCreateFolder, makeFilePublic, initGoogleDriveAuth, authenticate } from '../../services/driveService';
 
 // Default Placeholders
 const DEFAULT_HERO_IMAGES = [
@@ -52,7 +52,8 @@ const InlineDriveUploader = ({ folderName, onUpload, buttonText, icon: Icon, cla
     setUploading(true);
     toast.info(`Subiendo a ${folderName}...`, { duration: 3000 });
     try {
-      const folder = await findOrCreateFolder(folderName);
+      const appRoot = await getAppRootFolder();
+      const folder = await findOrCreateFolder(folderName, appRoot.id);
       const uploaded = await uploadFileToDrive(file, folder.id);
       await makeFilePublic(uploaded.id);
       const url = uploaded.webContentLink || uploaded.webViewLink;

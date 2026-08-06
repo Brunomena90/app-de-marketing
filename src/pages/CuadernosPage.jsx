@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, where } from 'firebase/firestore';
-import { Plus, Book, Calendar, User, Trash2, ArrowRight, Search } from 'lucide-react';
+import { Plus, Book, Calendar, User, Trash2, ArrowRight, Search, AlignLeft, Video } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ const CuadernosPage = () => {
     const [deleteModal, setDeleteModal] = useState({ open: false, id: null });
     const [availableEmpresas, setAvailableEmpresas] = useState([]);
     const [empresaDestino, setEmpresaDestino] = useState('');
+    const [newType, setNewType] = useState('nota');
 
     const { user, activeEmpresa, hasGlobalAccess, isAdmin } = useAuth();
     const navigate = useNavigate();
@@ -78,12 +79,14 @@ const CuadernosPage = () => {
                 createdBy: user?.name || 'Sistema',
                 createdByUid: user?.uid || '',
                 sections: [],
-                empresa: activeEmpresa === 'Todas' ? empresaDestino : activeEmpresa
+                empresa: activeEmpresa === 'Todas' ? empresaDestino : activeEmpresa,
+                type: newType
             });
             toast.success("Cuaderno creado con éxito");
             setIsModalOpen(false);
             setNewTitle('');
             setEmpresaDestino('');
+            setNewType('nota');
             navigate(`/cuadernos/${docRef.id}`);
         } catch (error) {
             console.error(error);
@@ -127,7 +130,7 @@ const CuadernosPage = () => {
                             {notebooks.length}
                         </span>
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">Gestiona tus planes de producción consolidados</p>
+                    <p className="text-gray-500 text-sm mt-1">Gestiona tus cuadernos de notas y guías de producción</p>
                 </div>
                 <button
                     onClick={() => setIsModalOpen(true)}
@@ -211,9 +214,9 @@ const CuadernosPage = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Nuevo Cuaderno de Escenas"
+                title="Nuevo Cuaderno"
             >
-                <form onSubmit={handleCreate} className="space-y-4">
+                <form onSubmit={handleCreate} className="space-y-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
                             Título del Cuaderno
@@ -247,6 +250,41 @@ const CuadernosPage = () => {
                             </select>
                         </div>
                     )}
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">
+                            Tipo de Cuaderno
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setNewType('nota')}
+                                className={`p-4 rounded-xl border-2 text-left flex flex-col items-start gap-2 transition-all ${newType === 'nota' ? 'border-blue-500 bg-blue-50/50 shadow-md shadow-blue-100' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                            >
+                                <div className={`p-2 rounded-lg ${newType === 'nota' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    <AlignLeft size={24} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-800 text-sm">Nota</h4>
+                                    <p className="text-xs text-gray-500 mt-1">Editor de texto enriquecido</p>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setNewType('guia')}
+                                className={`p-4 rounded-xl border-2 text-left flex flex-col items-start gap-2 transition-all ${newType === 'guia' ? 'border-purple-500 bg-purple-50/50 shadow-md shadow-purple-100' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                            >
+                                <div className={`p-2 rounded-lg ${newType === 'guia' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    <Video size={24} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-800 text-sm">Guía de Producción</h4>
+                                    <p className="text-xs text-gray-500 mt-1">Checklist y escenas</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="pt-4 flex gap-3">
                         <button
                             type="button"

@@ -119,6 +119,7 @@ export const AuthProvider = ({ children }) => {
                     if (updatedData.status === 'paused') {
                         localStorage.removeItem('gci_user');
                         localStorage.removeItem('gci_active_empresa');
+                        alert("ERROR: Tu cuenta está pausada.");
                         window.location.reload();
                         return;
                     }
@@ -135,6 +136,7 @@ export const AuthProvider = ({ children }) => {
                     // Si borran al usuario
                     localStorage.removeItem('gci_user');
                     localStorage.removeItem('gci_active_empresa');
+                    alert("ERROR: Tu usuario ya no existe en la base de datos.");
                     window.location.reload();
                 }
             });

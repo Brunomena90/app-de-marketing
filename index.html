@@ -53,6 +53,20 @@
           console.log('PWA Service Worker reg error:', err);
         });
       });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        let hasSw = false;
+        for(let registration of registrations) {
+          registration.unregister();
+          hasSw = true;
+        }
+        if (hasSw) {
+          console.warn("Service Workers unregistered. Forcing a clean reload.");
+          window.location.reload();
+        }
+      });
     }
   </script>
 </head>

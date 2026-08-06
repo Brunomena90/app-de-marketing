@@ -11,7 +11,8 @@ import { useAuth } from '../context/AuthContext';
 // IMPORTANTE: Recibir 'onClick' en las props
 const RequestCard = ({ request, onClick }) => {
     const { user, isAdmin } = useAuth();
-    const isPostProd = request?.inPostProduction;
+    const hasIncompletePostProd = request?.postRecordings?.some(pr => pr.date && (!pr.startTime || !pr.endTime));
+    const isPostProd = hasIncompletePostProd || request?.inPostProduction;
 
     // Helper para truncar texto cuidando que sea legible
     const truncateText = (text, maxLength = 25) => {
@@ -71,42 +72,42 @@ const RequestCard = ({ request, onClick }) => {
     return (
         <div
             onClick={onClick}
-            className={`border rounded-[24px] p-5 shadow-sm hover:shadow-md transition-all cursor-pointer relative group ${isPostProd ? 'bg-indigo-600 border-indigo-500 shadow-indigo-200' : 'bg-white border-slate-200'}`}
+            className={`border rounded-[24px] p-5 shadow-sm hover:shadow-md transition-all cursor-pointer relative group bg-white border-slate-200`}
         >
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
-                    <span className={`p-2.5 rounded-xl shadow-inner ${isPostProd ? 'bg-indigo-500/50 text-white border border-indigo-400' : (type === 'video' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-purple-50 text-purple-600 border border-purple-100')}`}>
+                    <span className={`p-2.5 rounded-xl shadow-inner ${type === 'video' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-purple-50 text-purple-600 border border-purple-100'}`}>
                         {type === 'video' ? <Video size={18} /> : <FileText size={18} />}
                     </span>
                     <div>
-                        <h3 className={`font-bold text-base leading-tight line-clamp-2 ${isPostProd ? 'text-white' : 'text-slate-800'}`}>{title}</h3>
-                        <p className={`text-[10px] uppercase font-bold tracking-widest mt-1 ${isPostProd ? 'text-indigo-200' : 'text-slate-400'}`}>{type === 'video' ? 'Producción Audiovisual' : 'Diseño Gráfico'}</p>
+                        <h3 className={`font-bold text-base leading-tight line-clamp-2 text-slate-800`}>{title}</h3>
+                        <p className={`text-[10px] uppercase font-bold tracking-widest mt-1 text-slate-400`}>{type === 'video' ? 'Producción Audiovisual' : 'Diseño Gráfico'}</p>
                     </div>
                 </div>
 
                 <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     {(isAdmin || user?.role === 'editor') && (
-                        <button onClick={handleDelete} className={`p-2 rounded-lg transition-colors shadow-sm ${isPostProd ? 'bg-indigo-500 text-indigo-100 hover:bg-red-500 hover:text-white border border-indigo-400' : 'bg-white border border-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 hover:border-red-100'}`} title="Eliminar">
+                        <button onClick={handleDelete} className={`p-2 rounded-lg transition-colors shadow-sm bg-white border border-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 hover:border-red-100`} title="Eliminar">
                             <Trash2 size={14} />
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className={`space-y-3 text-sm font-medium mb-5 ${isPostProd ? 'text-indigo-100' : 'text-slate-600'}`}>
+            <div className={`space-y-3 text-sm font-medium mb-5 text-slate-600`}>
                 <div className="flex items-center gap-2">
-                    <User size={14} className={isPostProd ? 'text-indigo-300' : 'text-slate-400'} /> <span className="truncate">{area}</span>
+                    <User size={14} className={'text-slate-400'} /> <span className="truncate">{area}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Calendar size={14} className={isPostProd ? 'text-indigo-300' : 'text-slate-400'} /> <span>Entrega: {deliveryDate || 'Pendiente'}</span>
+                    <Calendar size={14} className={'text-slate-400'} /> <span>Entrega: {deliveryDate || 'Pendiente'}</span>
                 </div>
                 {request.checklist && request.checklist.length > 0 && (
-                    <div className={`flex items-center gap-2 font-bold ${isPostProd ? 'text-white' : 'text-blue-600'}`}>
+                    <div className={`flex items-center gap-2 font-bold text-blue-600`}>
                         <List size={14} /> <span>{request.checklist.filter(c => c.completed).length}/{request.checklist.length} Tareas</span>
                     </div>
                 )}
                 { (request.campaign || request.subGroup) && (
-                    <div className={`flex items-center gap-2 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border uppercase tracking-tighter truncate max-w-full ${isPostProd ? 'bg-indigo-500 text-white border-indigo-400' : 'text-purple-700 bg-purple-50 border-purple-200'}`} title={request.campaign + (request.subGroup ? ` > ${request.subGroup}` : '')}>
+                    <div className={`flex items-center gap-2 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border uppercase tracking-tighter truncate max-w-full text-purple-700 bg-purple-50 border-purple-200`} title={request.campaign + (request.subGroup ? ` > ${request.subGroup}` : '')}>
                         <Megaphone size={12} className="shrink-0" />
                         <span className="truncate">
                             {request.subGroup ? truncateText(request.subGroup, 25) : request.campaign}
@@ -117,15 +118,15 @@ const RequestCard = ({ request, onClick }) => {
 
             <div className="space-y-3 pt-4 border-t border-slate-100/20">
                 <div className="flex justify-between items-center text-xs">
-                    <span className={`px-2.5 py-1 rounded-full font-bold uppercase tracking-wider text-[10px] shadow-sm ${isPostProd ? 'bg-indigo-500/50 text-white border border-indigo-400' : (statusColors[status.toLowerCase()] || statusColors.solicitado)}`}>
-                        {isPostProd ? (request.postProductionFinished ? 'Post Producción (FIN)' : 'En Post Producción') : status}
+                    <span className={`px-2.5 py-1 rounded-full font-bold uppercase tracking-wider text-[10px] shadow-sm ${isPostProd ? 'bg-green-100 text-green-600 border border-green-200' : (statusColors[status.toLowerCase()] || statusColors.solicitado)}`}>
+                        {isPostProd ? 'Postproducción' : status}
                     </span>
-                    <span className={`font-bold ${isPostProd ? 'text-white' : 'text-slate-400'}`}>{progress}%</span>
+                    <span className={`font-bold text-slate-400`}>{progress}%</span>
                 </div>
                 {/* Barra de progreso */}
-                <div className={`w-full rounded-full h-2 shadow-inner ${isPostProd ? 'bg-indigo-800/50' : 'bg-slate-100'}`}>
+                <div className={`w-full rounded-full h-2 shadow-inner bg-slate-100`}>
                     <div
-                        className={`h-2 rounded-full transition-all duration-500 ${isPostProd ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-blue-500'}`}
+                        className={`h-2 rounded-full transition-all duration-500 bg-blue-500`}
                         style={{ width: `${progress}%` }}
                     ></div>
                 </div>

@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
-import { ArrowLeft, Plus, Trash2, Printer, FileText, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, FileText, CheckCircle2, AlignLeft, Video, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import ScenePickerModal from '../components/ScenePickerModal';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const CuadernoDetailPage = () => {
     const { id } = useParams();
@@ -16,6 +18,8 @@ const CuadernoDetailPage = () => {
     const [notebook, setNotebook] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [noteContent, setNoteContent] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     // Check permissions
     useEffect(() => {
@@ -38,7 +42,12 @@ const CuadernoDetailPage = () => {
                     return;
                 }
 
-                setNotebook(data);
+                setNotebook(prev => {
+                    if (!prev && data.type === 'nota') {
+                        setNoteContent(data.content || '');
+                    }
+                    return data;
+                });
             } else {
                 toast.error("El cuaderno no existe");
                 navigate('/cuadernos');
@@ -47,6 +56,26 @@ const CuadernoDetailPage = () => {
         });
         return () => unsub();
     }, [id, navigate, activeEmpresa]);
+
+    const handleSaveNote = async () => {
+        setIsSaving(true);
+        try {
+            await updateDoc(doc(db, "cuadernos", id), { content: noteContent });
+            toast.success("Nota guardada");
+        } catch (error) {
+            toast.error("Error al guardar la nota");
+        }
+        setIsSaving(false);
+    };
+
+    const setCuadernoType = async (type) => {
+        try {
+            await updateDoc(doc(db, "cuadernos", id), { type });
+            toast.success(type === 'nota' ? "Cuaderno configurado como Nota" : "Cuaderno configurado como Guía");
+        } catch (error) {
+            toast.error("Error al configurar el tipo");
+        }
+    };
 
     const handleImportScenes = async (data) => {
         try {
@@ -201,6 +230,98 @@ const CuadernoDetailPage = () => {
     };
 
     if (loading) return <div className="h-screen flex items-center justify-center font-medium text-gray-400 italic animate-pulse">Cargando documento...</div>;
+
+    const currentType = notebook.type || (notebook.sections?.length > 0 ? 'guia' : null);
+
+    if (!currentType) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 relative">
+                <button onClick={() => navigate('/cuadernos')} className="absolute top-6 left-6 p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+                    <ArrowLeft size={24} />
+                </button>
+                <div className="max-w-3xl w-full">
+                    <h2 className="text-3xl font-black text-gray-800 mb-2 text-center">{notebook.title}</h2>
+                    <p className="text-gray-500 mb-10 text-center">Selecciona el tipo de cuaderno que deseas crear</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <button onClick={() => setCuadernoType('nota')} className="bg-white p-10 rounded-3xl shadow-sm border-2 border-transparent hover:border-blue-500 hover:shadow-xl transition-all group text-left flex flex-col items-center">
+                            <div className="p-6 bg-blue-50 text-blue-600 rounded-2xl mb-6 group-hover:scale-110 transition-transform">
+                                <AlignLeft size={48} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Crear una Nota</h3>
+                            <p className="text-gray-500 text-center text-sm">Un espacio libre con editor de texto enriquecido para tomar apuntes, crear listas y estructurar ideas.</p>
+                        </button>
+                        <button onClick={() => setCuadernoType('guia')} className="bg-white p-10 rounded-3xl shadow-sm border-2 border-transparent hover:border-purple-500 hover:shadow-xl transition-all group text-left flex flex-col items-center">
+                            <div className="p-6 bg-purple-50 text-purple-600 rounded-2xl mb-6 group-hover:scale-110 transition-transform">
+                                <Video size={48} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Crear Guía de Producción</h3>
+                            <p className="text-gray-500 text-center text-sm">Importa escenas y checklist de tus solicitudes para organizar tu plan de grabación consolidado.</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (currentType === 'nota') {
+        return (
+            <div className="min-h-screen bg-[#0a0a0a] pb-20">
+                <div className="sticky top-0 z-40 bg-[#141414]/90 backdrop-blur-md border-b border-[#2a2a2a] px-6 py-3 flex justify-between items-center shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => navigate('/cuadernos')} className="p-2 hover:bg-[#2a2a2a] rounded-full transition-colors text-gray-400">
+                            <ArrowLeft size={20} />
+                        </button>
+                        <div>
+                            <h1 className="text-sm font-bold text-gray-100 line-clamp-1">{notebook.title}</h1>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest">Cuaderno de Notas</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={handleSaveNote} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-xs font-bold shadow-lg shadow-blue-200 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                            <Save size={16} /> {isSaving ? "Guardando..." : "Guardar Nota"}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="max-w-4xl mx-auto mt-10 md:mt-16 bg-[#141414] border border-[#2a2a2a] shadow-2xl min-h-[11in] p-12 md:p-20 relative animate-in fade-in slide-in-from-bottom-5 duration-700 editor-container">
+                    <div className="mb-10">
+                        <h2 className="text-4xl font-black text-gray-100 tracking-tight outline-none">{notebook.title}</h2>
+                        <div className="h-1 w-20 bg-blue-600 mt-6 rounded-full"></div>
+                    </div>
+                    <ReactQuill 
+                        theme="snow" 
+                        value={noteContent} 
+                        onChange={setNoteContent} 
+                        className="h-full min-h-[500px]"
+                        placeholder="Escribe tus notas aquí..."
+                        modules={{
+                            toolbar: [
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                ['link'],
+                                ['clean']
+                            ]
+                        }}
+                    />
+                </div>
+                
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                    .editor-container .ql-container { font-size: 16px; border: none !important; font-family: inherit; }
+                    .editor-container .ql-toolbar { border: none !important; border-bottom: 2px solid #2a2a2a !important; margin-bottom: 1rem; padding-bottom: 1rem; }
+                    .editor-container .ql-editor { padding: 0; min-height: 500px; color: #e5e5e5; }
+                    .editor-container .ql-editor.ql-blank::before { color: #555 !important; font-style: normal; }
+                    .editor-container .ql-snow .ql-stroke { stroke: #888; }
+                    .editor-container .ql-snow .ql-fill { fill: #888; }
+                    .editor-container .ql-snow .ql-picker { color: #888; }
+                    .editor-container .ql-snow .ql-picker-options { background-color: #1a1a1a; border-color: #333; }
+                    .editor-container .ql-snow .ql-picker-item:hover { color: #fff; }
+                ` }} />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-100/50 pb-20">

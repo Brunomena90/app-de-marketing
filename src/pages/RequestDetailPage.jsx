@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Trash2, Plus, Link as LinkIcon, ExternalLink, FileDown, Edit2, Save, User, Calendar, Clock, PlayCircle, Layers, GripVertical, Megaphone, X, History, PanelLeftClose, PanelLeftOpen, Archive, RefreshCcw, RotateCcw, FileText, Lock, MessageSquare, ChevronRight, Search, ChevronDown } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Trash2, Plus, Link as LinkIcon, ExternalLink, FileDown, Edit2, Save, User, Calendar, Clock, PlayCircle, Layers, GripVertical, Megaphone, X, History, PanelLeftClose, PanelLeftOpen, Archive, RefreshCcw, RotateCcw, FileText, Lock, MessageSquare, ChevronRight, Search, ChevronDown, Copy } from 'lucide-react';
 import Accordion from '../components/Accordion';
 import { doc, updateDoc, collection, query, orderBy, onSnapshot, addDoc, where } from 'firebase/firestore';
 
@@ -65,10 +65,18 @@ const RequestDetailPage = () => {
     const [newTask, setNewTask] = useState("");
     const [linkInput, setLinkInput] = useState("");
     const [isEditingLink, setIsEditingLink] = useState(false);
+    
+    // Estados para subida a Drive
+    const [isUploadingFile, setIsUploadingFile] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadStatusText, setUploadStatusText] = useState('');
+
     const [editedTitle, setEditedTitle] = useState("");
     const [isEditingTitle, setIsEditingTitle] = useState(false);
 
     const [editDeliveryDate, setEditDeliveryDate] = useState("");
+    const [editPublicationDate, setEditPublicationDate] = useState("");
+    const [editPublicationTime, setEditPublicationTime] = useState("");
     const [recordings, setRecordings] = useState([]);
     const [postRecordings, setPostRecordings] = useState([]);
     const [activeCampaigns, setActiveCampaigns] = useState([]);
@@ -88,6 +96,10 @@ const RequestDetailPage = () => {
     
     // Novedades: Modo producción
     const [isProductionMode, setIsProductionMode] = useState(false);
+    
+    // Vista de Copywriting
+    const [viewMode, setViewMode] = useState('main'); // 'main' | 'copywriting'
+    const [editCopy, setEditCopy] = useState("");
 
     const normalize = (str) => str ? str.trim().toLowerCase() : '';
     const userRole = normalize(user?.role);
@@ -134,12 +146,15 @@ const RequestDetailPage = () => {
                     setIsEditingLink(!url);
                 }
                 if (!editDeliveryDate) setEditDeliveryDate(data.deliveryDate || "");
+                if (!editPublicationDate) setEditPublicationDate(data.publicationDate || data.publishDate || data.fechaPublicacion || "");
+                if (!editPublicationTime) setEditPublicationTime(data.publicationTime || data.horaPublicacion || "");
                 setRecordings(data.recordings || []);
                 setPostRecordings(data.postRecordings || []);
                 if (!editRequestDate || editRequestDate === "") setEditRequestDate(data.requestDate || "");
                 
                 // Sincronizar Modo Producción persistente
                 setIsProductionMode(!!data.isProductionMode);
+                setEditCopy(data.copy || "");
             } else {
                 toast.error("Solicitud no encontrada");
                 navigate('/solicitudes');
@@ -270,9 +285,19 @@ const RequestDetailPage = () => {
         }
         try {
             const newMode = !isProductionMode;
-            await updateDoc(doc(db, "solicitudes_contenido", id), {
-                isProductionMode: newMode
-            });
+            
+            const updateData = { isProductionMode: newMode };
+            
+            // Auto-generar fecha de post-producción al entrar a modo producción
+            if (newMode && (!request.postRecordings || request.postRecordings.length === 0)) {
+                updateData.postRecordings = [{
+                    date: new Date().toISOString().split('T')[0],
+                    startTime: '09:00',
+                    endTime: '11:00'
+                }];
+            }
+
+            await updateDoc(doc(db, "solicitudes_contenido", id), updateData);
             toast.success(newMode ? "Modo producción activado" : "Modo producción desactivado");
         } catch (e) {
             toast.error("Error al actualizar");
@@ -356,6 +381,55 @@ const RequestDetailPage = () => {
     };
 
     const saveLink = async () => { if (!isValidUrl(linkInput)) return toast.error("Link inválido"); await updateDoc(doc(db, "solicitudes_contenido", request.id), { finalLink: linkInput }); setIsEditingLink(false); toast.success("Guardado"); };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setIsUploadingFile(true);
+        setUploadProgress(0);
+        setUploadStatusText('Preparando subida...');
+
+        try {
+            // 1. Encontrar o crear la carpeta principal del sistema
+            const { getAppRootFolder, findOrCreateFolder, uploadFileWithProgress, makeFilePublic } = await import('../services/driveService.js');
+            
+            const appRoot = await getAppRootFolder();
+
+            // 2. Encontrar o crear la carpeta 'Solicitudes'
+            setUploadStatusText('Verificando carpeta principal...');
+            const mainFolder = await findOrCreateFolder('Solicitudes', appRoot.id);
+
+            setUploadStatusText('Verificando carpeta de marca...');
+            const reqEmpresa = request.empresa || request.area || 'General';
+            const brandFolder = await findOrCreateFolder(reqEmpresa, mainFolder.id);
+
+            setUploadStatusText('Verificando carpeta de solicitud...');
+            const reqTitle = request.title || 'Sin Titulo';
+            const reqFolder = await findOrCreateFolder(reqTitle, brandFolder.id);
+
+            setUploadStatusText('Subiendo archivo...');
+            const result = await uploadFileWithProgress(file, reqFolder.id, (percent) => {
+                setUploadProgress(percent);
+                setUploadStatusText(`Subiendo: ${percent}%`);
+            });
+
+            setUploadStatusText('Configurando permisos...');
+            await makeFilePublic(result.id);
+
+            await updateDoc(doc(db, "solicitudes_contenido", request.id), { finalLink: result.webViewLink });
+            toast.success("Archivo subido y guardado");
+            setIsEditingLink(false);
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al subir archivo");
+        } finally {
+            setIsUploadingFile(false);
+            setUploadProgress(0);
+            setUploadStatusText('');
+            e.target.value = ''; // Reset input
+        }
+    };
 
     const handleApproveDeliverable = async () => {
         try {
@@ -744,9 +818,63 @@ const RequestDetailPage = () => {
                 </div>
             </div>
 
+            {/* VISTA COPYWRITING */}
+            {viewMode === 'copywriting' && (
+                <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8 animate-in fade-in duration-300">
+                    <button 
+                        onClick={() => setViewMode('main')}
+                        className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold mb-6 transition-colors bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200"
+                    >
+                        <ArrowLeft size={16} /> Retroceder a Detalles
+                    </button>
+                    
+                    <div className="bg-white rounded-[24px] shadow-sm border border-slate-200 flex flex-col overflow-hidden h-[70vh]">
+                        <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <FileText size={18} className="text-purple-500" /> Copywriting (Descripción)
+                            </h2>
+                            <div className="flex gap-2 items-center">
+                                <button 
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(editCopy);
+                                        toast.success("¡Copiado al portapapeles!");
+                                    }}
+                                    className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
+                                >
+                                    <Copy size={14} /> Copiar
+                                </button>
+                                {canEdit && (
+                                    <button 
+                                        onClick={() => {
+                                            updateField('copy', editCopy);
+                                            toast.success("Copy guardado correctamente");
+                                        }}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-2"
+                                    >
+                                        <Save size={14} /> Guardar Copy
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex-1 p-0">
+                            <textarea
+                                value={editCopy}
+                                onChange={(e) => setEditCopy(e.target.value)}
+                                disabled={!canEdit}
+                                placeholder="Escribe aquí el texto del post, la descripción del video, hashtags, etc..."
+                                className="w-full h-full p-6 resize-none outline-none text-slate-700 leading-relaxed font-medium bg-transparent"
+                                spellCheck={true}
+                                lang="es-PE"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+            {viewMode === 'main' && (
+                <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                     {/* LEFT COLUMN: Data View (Hidden in Production Mode) */}
                     {!isProductionMode && (
                         <div className="lg:col-span-5 flex flex-col gap-6 animate-in slide-in-from-left-4 duration-300">
@@ -825,6 +953,26 @@ const RequestDetailPage = () => {
                                         <input type="date" value={editDeliveryDate} onChange={(e) => updateField('deliveryDate', e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 w-full text-sm bg-white shadow-sm focus:ring-2 focus:ring-blue-100 outline-none font-bold text-slate-700" />
                                     ) : (
                                         <span className="text-sm font-bold text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm inline-block w-full">{request.deliveryDate || 'No definida'}</span>
+                                    )}
+                                </div>
+                                
+                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Calendar size={12}/> Fecha de Publicación</span>
+                                    </div>
+                                    {canEdit ? (
+                                        <div className="flex gap-2">
+                                            <input type="date" value={editPublicationDate} onChange={(e) => {
+                                                setEditPublicationDate(e.target.value);
+                                                updateField('publicationDate', e.target.value);
+                                            }} className="border border-slate-200 rounded-lg px-3 py-2 w-full text-sm bg-white shadow-sm focus:ring-2 focus:ring-rose-100 outline-none font-bold text-slate-700" />
+                                            <input type="time" value={editPublicationTime} onChange={(e) => {
+                                                setEditPublicationTime(e.target.value);
+                                                updateField('publicationTime', e.target.value);
+                                            }} className="border border-slate-200 rounded-lg px-3 py-2 w-full text-sm bg-white shadow-sm focus:ring-2 focus:ring-rose-100 outline-none font-bold text-slate-700" />
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm font-bold text-slate-800 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm inline-block w-full">{request.publicationDate || request.publishDate || request.fechaPublicacion || 'No definida'} {request.publicationTime || request.horaPublicacion || ''}</span>
                                     )}
                                 </div>
 
@@ -912,12 +1060,19 @@ const RequestDetailPage = () => {
                                     <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Briefing (Requerimiento)</span>
                                     <div className="bg-blue-50/50 p-4 rounded-2xl text-sm text-blue-900 border border-blue-100 leading-relaxed font-medium whitespace-pre-wrap">{request.briefing || "Sin detalles"}</div>
                                 </div>
-                                {request.copy && (
-                                    <div>
-                                        <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Copy Propuesto</span>
-                                        <div className="bg-white p-4 rounded-2xl text-sm italic border border-slate-200 shadow-sm text-slate-600 font-medium">{request.copy}</div>
-                                    </div>
-                                )}
+                                
+                                <div className="pt-4 border-t border-slate-100">
+                                    <button 
+                                        onClick={() => setViewMode('copywriting')}
+                                        className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 p-4 rounded-2xl flex items-center justify-between transition-all group"
+                                    >
+                                        <div className="flex flex-col text-left">
+                                            <span className="text-sm font-bold flex items-center gap-2"><FileText size={16} /> Ver Copywriting / Descripción</span>
+                                            <span className="text-[10px] opacity-70 mt-1 font-medium">Textos para post, copy de video, hashtags, etc.</span>
+                                        </div>
+                                        <ChevronRight size={18} className="text-purple-400 group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -1200,12 +1355,44 @@ const RequestDetailPage = () => {
                                             {canEdit && <button onClick={() => setIsEditingLink(true)} className="text-xs font-bold text-emerald-700 bg-white shadow-sm border border-emerald-100 px-4 py-2 w-full sm:w-auto text-center rounded-lg hover:bg-emerald-100 active:scale-95 transition-all mt-2 sm:mt-0">Editar Link</button>}
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="flex flex-col gap-4">
                                             {canEdit ? (
-                                                <>
-                                                    <input value={linkInput} onChange={e => setLinkInput(e.target.value)} placeholder="Ej: https://drive.google.com/..." className="flex-1 border shadow-inner border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 min-w-0 transition-all text-slate-700 font-medium" />
-                                                    <button onClick={saveLink} className="bg-slate-900 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 active:scale-95 transition-all whitespace-nowrap"><Save size={16} className="inline mr-1" /> Guardar</button>
-                                                </>
+                                                <div className="flex flex-col gap-4 p-5 bg-slate-50 border border-slate-200 rounded-xl">
+                                                    {isUploadingFile ? (
+                                                        <div className="flex flex-col gap-2 w-full">
+                                                            <div className="flex justify-between items-center text-xs font-bold text-blue-600">
+                                                                <span>{uploadStatusText}</span>
+                                                                <span>{uploadProgress}%</span>
+                                                            </div>
+                                                            <div className="w-full bg-blue-100 rounded-full h-2 overflow-hidden">
+                                                                <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                                <input value={linkInput} onChange={e => setLinkInput(e.target.value)} placeholder="Ej: https://drive.google.com/..." className="flex-1 border shadow-inner border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 min-w-0 transition-all text-slate-700 font-medium" />
+                                                                <button onClick={saveLink} className="bg-slate-900 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 active:scale-95 transition-all whitespace-nowrap"><Save size={16} className="inline mr-1" /> Guardar</button>
+                                                            </div>
+                                                            
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="flex-1 h-px bg-slate-200"></div>
+                                                                <span className="text-xs font-bold text-slate-400 uppercase">O subir archivo a Drive</span>
+                                                                <div className="flex-1 h-px bg-slate-200"></div>
+                                                            </div>
+
+                                                            <div className="relative">
+                                                                <input type="file" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                                                <div className="w-full py-3 px-4 bg-white border border-dashed border-blue-300 text-blue-600 rounded-xl text-center text-sm font-bold shadow-sm hover:bg-blue-50 transition-colors">
+                                                                    Seleccionar Archivo (Subida Directa)
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                    {(request.finalLink || request.link) && !isUploadingFile && (
+                                                        <button onClick={() => setIsEditingLink(false)} className="text-xs font-bold text-slate-500 hover:text-slate-700 mt-2">Cancelar Edición</button>
+                                                    )}
+                                                </div>
                                             ) : (
                                                 <div className="p-5 bg-slate-50 flex items-center justify-center gap-2 rounded-xl text-sm font-medium text-slate-400 w-full text-center border-2 border-dashed border-slate-200">
                                                     <Clock size={16} /> Esperando carga de entregable...
@@ -1250,6 +1437,7 @@ const RequestDetailPage = () => {
                         </div>
                     </div>
                 </div>
+            )}
 
             {/* Footer Sticky Bottom Actions */}
             <div className="fixed bottom-0 left-0 right-0 z-40 md:relative md:bottom-auto md:z-auto pointer-events-none">

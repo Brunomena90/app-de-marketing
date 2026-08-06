@@ -33,6 +33,8 @@ const ProcesosDashboard = () => {
             );
         }
 
+        let fallbackUnsubscribe = null;
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const procesData = snapshot.docs.map(doc => ({
                 id: doc.id,
@@ -48,7 +50,7 @@ const ProcesosDashboard = () => {
                     ? query(collection(db, 'procesos'))
                     : query(collection(db, 'procesos'), where('empresa', '==', activeEmpresa));
                 
-                onSnapshot(fallbackQ, (snap) => {
+                fallbackUnsubscribe = onSnapshot(fallbackQ, (snap) => {
                     setProcesos(snap.docs.map(d => ({id: d.id, ...d.data()})));
                     setLoading(false);
                 });
@@ -58,7 +60,12 @@ const ProcesosDashboard = () => {
             }
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            if (fallbackUnsubscribe) {
+                fallbackUnsubscribe();
+            }
+        };
     }, [activeEmpresa]);
 
     const handleCreateProceso = async (e) => {
