@@ -454,7 +454,20 @@ const RequestDetailPage = () => {
     };
 
     const handleCloseRequest = () => {
-        if (!request.finalLink && !linkInput) return toast.error("Falta link");
+        const allItemsCompleted = checklist.length === 0 || checklist.every(item => item.completed);
+        if (!allItemsCompleted) {
+            return toast.error("Todos los items del plan de producción deben estar marcados");
+        }
+
+        if (!request.finalLink && !linkInput) {
+            return toast.error("Falta un link en el apartado de link");
+        }
+
+        const isDeliverableApproved = request.deliverableApprovals && request.deliverableApprovals.length > 0;
+        if (!isDeliverableApproved) {
+            return toast.error("El entregable debe estar aprobado");
+        }
+
         toast("¿Cerrar Solicitud?", {
             description: "La solicitud pasará a estado Completado.",
             action: {
