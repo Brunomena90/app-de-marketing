@@ -15,9 +15,16 @@ class ErrorBoundary extends React.Component {
     console.error("ErrorBoundary atrapó un error: ", error, errorInfo);
     
     // Si es un error de carga de chunk (muy común en PWA con lazy loading tras un deploy)
-    // forzamos una recarga limpia
+    // forzamos una recarga limpia, pero limitando para evitar loops infinitos.
     if (error.name === 'ChunkLoadError' || (error.message && error.message.includes('Failed to fetch dynamically imported module'))) {
-      window.location.reload(true);
+      const reloadCount = parseInt(sessionStorage.getItem('chunk_reload_count') || '0', 10);
+      if (reloadCount < 2) {
+        sessionStorage.setItem('chunk_reload_count', (reloadCount + 1).toString());
+        window.location.reload(true);
+      } else {
+        console.error("Demasiados reloads por ChunkLoadError, deteniendo.");
+        sessionStorage.removeItem('chunk_reload_count'); // reset para futura vez manual
+      }
     }
 
     // Si la caché de Firestore se corrompió (error clásico de IndexedDB/HMR)
