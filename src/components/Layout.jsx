@@ -40,9 +40,9 @@ const Layout = ({ children, noPadding = false }) => {
     return (
         <div className={`flex h-screen overflow-hidden ${bgGlobalClass}`}>
 
-            {/* 1. SIDEBAR DESKTOP (Visible solo si NO estamos en modo compacto y en pantallas md+) */}
+            {/* 1. SIDEBAR DESKTOP (Visible solo si NO estamos en modo compacto y en pantallas lg+) */}
             {!forceCompactMode && (
-                <div className="hidden md:flex md:w-64 md:flex-col fixed h-full z-30">
+                <div className="hidden lg:flex lg:w-64 lg:flex-col fixed h-full z-30">
                     <Sidebar />
                 </div>
             )}
@@ -52,7 +52,7 @@ const Layout = ({ children, noPadding = false }) => {
                 <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
             )}
             
-            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${forceCompactMode ? '' : 'md:hidden'}`}>
+            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${forceCompactMode ? '' : 'lg:hidden'}`}>
                 <div className="relative h-full flex flex-col">
                     <button
                         onClick={() => setIsSidebarOpen(false)}
@@ -65,13 +65,13 @@ const Layout = ({ children, noPadding = false }) => {
             </div>
 
             {/* 3. CONTENIDO PRINCIPAL Y SPLIT SCREEN */}
-            <div className={`flex-1 flex w-full h-full relative transition-all duration-300 ${!forceCompactMode ? 'md:pl-64' : ''}`}>
+            <div className={`flex-1 flex w-full h-full relative transition-all duration-300 ${!forceCompactMode ? 'lg:pl-64' : ''}`}>
                 
                 {/* LADO IZQUIERDO (O 100% si no hay split) */}
                 <div className={`flex-1 flex flex-col h-full relative transition-all duration-300 ${isSplitScreen ? 'w-1/2 border-r border-gray-200 dark:border-gray-800' : 'w-full'}`}>
                     
                     {/* Header Top (Visible en móviles SIEMPRE, o en PC si forceCompactMode es true) */}
-                    <div className={`flex items-center justify-between p-3 border-b shadow-sm shrink-0 z-20 ${isDarkTheme ? 'bg-[#111] border-white/10' : 'bg-white border-gray-200'} ${forceCompactMode ? '' : 'md:hidden'}`}>
+                    <div className={`flex items-center justify-between p-3 border-b shadow-sm shrink-0 z-20 ${isDarkTheme ? 'bg-[#111] border-white/10' : 'bg-white border-gray-200'} ${forceCompactMode ? '' : 'lg:hidden'}`}>
                         <div className="flex items-center gap-3">
                             <button onClick={() => setIsSidebarOpen(true)} className={`p-1.5 rounded-lg active:scale-95 transition-transform ${isDarkTheme ? 'text-white/70 hover:bg-white/10' : 'text-gray-600 hover:bg-gray-100'}`}>
                                 <Menu size={24} />
